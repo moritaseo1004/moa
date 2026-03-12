@@ -25,7 +25,7 @@ export function StatusSelect({
           updateIssueStatus(issueId, e.target.value as IssueStatus, projectId)
         })
       }}
-      className="rounded-lg border border-border bg-background px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-ring/50 disabled:opacity-50"
+      className="rounded-lg border border-border bg-background px-2 py-1 text-sm outline-none focus:ring-0 disabled:opacity-50"
     >
       {ALL_STATUSES.map((s) => (
         <option key={s} value={s}>{STATUS_LABELS[s]}</option>

@@ -62,6 +62,16 @@ create table public.activity_logs (
   created_at  timestamptz not null default now()
 );
 
+-- Dashboard notes
+create table public.dashboard_notes (
+  id         uuid        primary key default uuid_generate_v4(),
+  user_id    uuid        not null references public.users(id) on delete cascade,
+  note_date  date        not null,
+  title      text        not null,
+  content    text,
+  created_at timestamptz not null default now()
+);
+
 -- ─── Indexes ──────────────────────────────────────────────────────────────────
 
 create index idx_issues_project_id   on public.issues(project_id);
@@ -71,6 +81,7 @@ create index idx_issues_priority     on public.issues(priority);
 create index idx_comments_issue_id   on public.comments(issue_id);
 create index idx_activity_entity     on public.activity_logs(entity_type, entity_id);
 create index idx_activity_user_id    on public.activity_logs(user_id);
+create index idx_dashboard_notes_user_date on public.dashboard_notes(user_id, note_date desc, created_at desc);
 
 -- ─── Row Level Security ────────────────────────────────────────────────────────
 
@@ -79,6 +90,7 @@ alter table public.projects      enable row level security;
 alter table public.issues        enable row level security;
 alter table public.comments      enable row level security;
 alter table public.activity_logs enable row level security;
+alter table public.dashboard_notes enable row level security;
 
 -- Authenticated users can read everything
 create policy "authenticated read"
@@ -96,6 +108,9 @@ create policy "authenticated read"
 create policy "authenticated read"
   on public.activity_logs for select to authenticated using (true);
 
+create policy "authenticated read"
+  on public.dashboard_notes for select to authenticated using (auth.uid() = user_id);
+
 -- Users can only modify their own profile
 create policy "own profile update"
   on public.users for update to authenticated
@@ -110,3 +125,11 @@ create policy "authenticated update"
 
 create policy "authenticated insert"
   on public.comments for insert to authenticated with check (true);
+
+create policy "own notes insert"
+  on public.dashboard_notes for insert to authenticated
+  with check (auth.uid() = user_id);
+
+create policy "own notes delete"
+  on public.dashboard_notes for delete to authenticated
+  using (auth.uid() = user_id);

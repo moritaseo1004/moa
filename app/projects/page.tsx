@@ -1,49 +1,52 @@
-import Link from 'next/link'
 import { getProjects } from '@/lib/data/projects'
+import { getDueIssuesForDashboard } from '@/lib/data/issues'
+import { getDashboardNotesByUser } from '@/lib/data/notes'
+import { getAuthenticatedUserId } from '@/lib/actions/authz'
 import { CreateProjectForm } from './_components/create-project-form'
+import { ProjectList } from './_components/project-list'
+import { DashboardView } from './_components/dashboard-view'
 
 export const metadata = { title: 'Projects — Tracker' }
 
 export default async function ProjectsPage() {
-  const projects = await getProjects()
+  const userId = await getAuthenticatedUserId()
+  const [projects, dueIssues, notes] = await Promise.all([
+    getProjects(),
+    userId ? getDueIssuesForDashboard(userId) : Promise.resolve([]),
+    userId ? getDashboardNotesByUser(userId) : Promise.resolve([]),
+  ])
+  const today = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10 space-y-8">
+    <div className="mx-auto max-w-[1760px] px-4 py-8 space-y-8">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Projects</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          {projects.length} project{projects.length !== 1 ? 's' : ''}
+          {projects.length} project{projects.length !== 1 ? 's' : ''} · {dueIssues.length} open issue{dueIssues.length !== 1 ? 's' : ''} with due date
         </p>
       </div>
 
-      {/* Project list */}
-      <div className="divide-y divide-border rounded-lg border border-border">
-        {projects.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-muted-foreground text-center">
-            No projects yet. Create one below.
-          </p>
-        ) : (
-          projects.map((project) => (
-            <Link
-              key={project.id}
-              href={`/project/${project.id}`}
-              className="flex flex-col gap-0.5 px-4 py-3 hover:bg-muted/50 transition-colors"
-            >
-              <span className="text-sm font-medium">{project.name}</span>
-              {project.description && (
-                <span className="text-xs text-muted-foreground line-clamp-1">
-                  {project.description}
-                </span>
-              )}
-            </Link>
-          ))
-        )}
-      </div>
+      <DashboardView issues={dueIssues} today={today} initialNotes={notes} />
 
-      {/* Create form */}
-      <div className="rounded-lg border border-border p-4 space-y-2">
-        <h2 className="text-sm font-medium">New project</h2>
-        <CreateProjectForm />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-lg border border-border">
+          <div className="border-b border-border px-4 py-3">
+            <h2 className="text-sm font-medium">Project list</h2>
+          </div>
+          <div className="divide-y divide-border">
+            <ProjectList projects={projects} />
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border p-4 space-y-2">
+          <h2 className="text-sm font-medium">New project</h2>
+          <CreateProjectForm />
+        </div>
       </div>
     </div>
   )

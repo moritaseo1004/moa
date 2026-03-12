@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef } from 'react'
 import { createIssue } from '@/lib/actions/issues'
 import { Button } from '@/components/ui/button'
+import { DatePickerInput } from '@/components/ui/date-picker-input'
 import { ALL_PRIORITIES, PRIORITY_LABELS } from '@/lib/priority'
 
 export function CreateIssueForm({ projectId }: { projectId: string }) {
@@ -38,16 +39,15 @@ export function CreateIssueForm({ projectId }: { projectId: string }) {
         <select
           name="priority"
           defaultValue="medium"
-          className="rounded-lg border border-border bg-background px-2 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/50 text-muted-foreground"
+          className="rounded-lg border border-border bg-background px-2 py-2 text-sm outline-none focus:ring-0 text-muted-foreground"
         >
           {ALL_PRIORITIES.map((p) => (
             <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>
           ))}
         </select>
-        <input
+        <DatePickerInput
           name="due_date"
-          type="date"
-          className="rounded-lg border border-border bg-background px-2 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/50 text-muted-foreground"
+          className="w-[170px]"
         />
       </div>
       {state?.error && (

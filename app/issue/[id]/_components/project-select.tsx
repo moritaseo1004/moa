@@ -24,7 +24,7 @@ export function ProjectSelect({
           moveIssueToProject(issueId, e.target.value, current)
         })
       }}
-      className="rounded-lg border border-border bg-background px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-ring/50 disabled:opacity-50"
+      className="rounded-lg border border-border bg-background px-2 py-1 text-sm outline-none focus:ring-0 disabled:opacity-50"
     >
       {projects.map((p) => (
         <option key={p.id} value={p.id}>{p.name}</option>

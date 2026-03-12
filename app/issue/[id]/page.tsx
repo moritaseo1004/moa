@@ -15,7 +15,9 @@ import { PrioritySelect } from './_components/priority-select'
 import { DueDateInput } from './_components/due-date-input'
 import { CommentForm } from './_components/comment-form'
 import { CompleteButton } from './_components/complete-button'
+import { DeleteIssueButton } from './_components/delete-issue-button'
 import { IssueAttachments } from './_components/issue-attachments'
+import { CommentList } from './_components/comment-list'
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -33,6 +35,10 @@ const ACTION_LABELS: Record<string, string> = {
 
 export default async function IssuePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const { createClient } = await import('@/lib/supabase/server')
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
   const [issue, projects, users, activity, attachments] = await Promise.all([
     getIssue(id),
     getProjects(),
@@ -59,6 +65,10 @@ export default async function IssuePage({ params }: { params: Promise<{ id: stri
                 {issue.project.name}
               </Link>
               <span>/</span>
+              <span className="font-mono font-medium text-foreground/70">
+                {issue.project.prefix}-{issue.issue_number}
+              </span>
+              <span>/</span>
             </>
           )}
           <span
@@ -71,7 +81,10 @@ export default async function IssuePage({ params }: { params: Promise<{ id: stri
           </span>
         </div>
 
-        <CompleteButton issueId={issue.id} projectId={issue.project_id} isDone={isDone} />
+        <div className="flex items-center gap-2">
+          <DeleteIssueButton issueId={issue.id} projectId={issue.project_id} />
+          <CompleteButton issueId={issue.id} projectId={issue.project_id} isDone={isDone} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_220px]">
@@ -92,23 +105,7 @@ export default async function IssuePage({ params }: { params: Promise<{ id: stri
               )}
             </h2>
 
-            {comments.length > 0 && (
-              <div className="space-y-2">
-                {comments.map((comment) => (
-                  <div key={comment.id} className="rounded-lg border border-border p-3 space-y-1">
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-xs font-medium">
-                        {comment.user?.name ?? 'Anonymous'}
-                      </span>
-                      <span className="text-xs text-muted-foreground shrink-0">
-                        {new Date(comment.created_at).toLocaleString()}
-                      </span>
-                    </div>
-                    <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
-                  </div>
-                ))}
-              </div>
-            )}
+            <CommentList comments={comments} issueId={id} currentUserId={user?.id ?? null} />
 
             <CommentForm issueId={issue.id} />
           </div>

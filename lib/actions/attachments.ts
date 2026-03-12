@@ -2,11 +2,44 @@
 
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserId } from '@/lib/actions/authz'
+
+export async function deleteAttachment(
+  attachmentId: string,
+  fileUrl: string,
+  issueId: string,
+): Promise<{ error?: string }> {
+  const actorId = await getAuthenticatedUserId()
+  if (!actorId) return { error: 'Unauthorized' }
+
+  const supabase = createAdminClient()
+
+  const url = new URL(fileUrl)
+  const marker = '/object/public/issue-attachments/'
+  const idx = url.pathname.indexOf(marker)
+  if (idx !== -1) {
+    const path = url.pathname.slice(idx + marker.length)
+    await supabase.storage.from('issue-attachments').remove([path])
+  }
+
+  const { error } = await supabase
+    .from('issue_attachments')
+    .delete()
+    .eq('id', attachmentId)
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/issue/${issueId}`)
+  return {}
+}
 
 export async function uploadAttachmentsToIssue(
   issueId: string,
   formData: FormData,
 ): Promise<{ error?: string }> {
+  const actorId = await getAuthenticatedUserId()
+  if (!actorId) return { error: 'Unauthorized' }
+
   const files = formData.getAll('attachments') as File[]
   const validFiles = files.filter((f) => f.size > 0)
 

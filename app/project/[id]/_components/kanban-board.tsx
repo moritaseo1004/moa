@@ -11,12 +11,17 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
+import { LayoutGrid, Table2 } from 'lucide-react'
 import { updateIssueStatus } from '@/lib/actions/issues'
 import { ALL_STATUSES } from '@/lib/status'
 import { PRIORITY_ORDER } from '@/lib/priority'
 import { KanbanColumn } from './kanban-column'
 import { IssueCardContent } from './issue-card'
+import { TableView } from './table-view'
 import type { IssueWithRelations, IssueStatus, User } from '@/lib/types'
+
+type ViewMode = 'kanban' | 'table'
+type SortMode = 'latest' | 'oldest' | 'due_soon'
 
 export function KanbanBoard({
   issues: initial,
@@ -37,6 +42,8 @@ export function KanbanBoard({
   const [, startTransition] = useTransition()
   const [search, setSearch] = useState('')
   const [assigneeFilter, setAssigneeFilter] = useState('')
+  const [viewMode, setViewMode] = useState<ViewMode>('kanban')
+  const [sortMode, setSortMode] = useState<SortMode>('latest')
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -72,11 +79,25 @@ export function KanbanBoard({
     return true
   })
 
-  // Sort within each column by priority then created_at
+  // Global sort mode applied across all columns
   const sorted = [...filtered].sort((a, b) => {
+    if (sortMode === 'latest') {
+      return a.created_at > b.created_at ? -1 : 1
+    }
+
+    if (sortMode === 'oldest') {
+      return a.created_at < b.created_at ? -1 : 1
+    }
+
+    // due_soon: earliest due date first, then higher priority, then latest created
+    const aDue = a.due_date ?? '9999-12-31'
+    const bDue = b.due_date ?? '9999-12-31'
+    if (aDue !== bDue) return aDue < bDue ? -1 : 1
+
     const pd = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
     if (pd !== 0) return pd
-    return a.created_at < b.created_at ? -1 : 1
+
+    return a.created_at > b.created_at ? -1 : 1
   })
 
   return (
@@ -92,9 +113,9 @@ export function KanbanBoard({
         <select
           value={assigneeFilter}
           onChange={(e) => setAssigneeFilter(e.target.value)}
-          className="h-8 rounded-lg border border-border bg-background px-2 text-sm outline-none focus:ring-2 focus:ring-ring/50 text-muted-foreground"
+          className="h-8 min-w-[132px] rounded-lg border border-border bg-background px-2 pr-8 text-sm outline-none focus:ring-0 text-muted-foreground"
         >
-          <option value="">All assignees</option>
+          <option value="">All</option>
           {users.map((u) => (
             <option key={u.id} value={u.id}>{u.name}</option>
           ))}
@@ -107,33 +128,62 @@ export function KanbanBoard({
             Clear
           </button>
         )}
+        <select
+          value={sortMode}
+          onChange={(e) => setSortMode(e.target.value as SortMode)}
+          className="h-8 rounded-lg border border-border bg-background px-2 pr-8 text-sm outline-none focus:ring-0 text-muted-foreground"
+        >
+          <option value="latest">Latest</option>
+          <option value="oldest">Oldest</option>
+          <option value="due_soon">Due soon</option>
+        </select>
+        <div className="ml-auto flex items-center gap-1 rounded-lg border border-border p-0.5">
+          <button
+            onClick={() => setViewMode('kanban')}
+            className={`rounded-md p-1.5 transition-colors ${viewMode === 'kanban' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            title="Kanban view"
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => setViewMode('table')}
+            className={`rounded-md p-1.5 transition-colors ${viewMode === 'table' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            title="Table view"
+          >
+            <Table2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="flex gap-3">
-          {ALL_STATUSES.map((status) => (
-            <KanbanColumn
-              key={status}
-              status={status}
-              issues={sorted.filter((i) => i.status === status)}
-            />
-          ))}
-        </div>
+      {viewMode === 'table' ? (
+        <TableView issues={sorted} />
+      ) : (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="grid w-full min-w-[1120px] gap-3 [grid-template-columns:repeat(5,minmax(220px,1fr))] xl:min-w-0">
+            {ALL_STATUSES.map((status) => (
+              <KanbanColumn
+                key={status}
+                status={status}
+                issues={sorted.filter((i) => i.status === status)}
+              />
+            ))}
+          </div>
 
-        {/* Floating drag preview */}
-        <DragOverlay dropAnimation={null}>
-          {activeIssue && (
-            <div className="w-[210px] rotate-1 opacity-95">
-              <IssueCardContent issue={activeIssue} shadow />
-            </div>
-          )}
-        </DragOverlay>
-      </DndContext>
+          {/* Floating drag preview */}
+          <DragOverlay dropAnimation={null}>
+            {activeIssue && (
+              <div className="w-[210px] rotate-1 opacity-95">
+                <IssueCardContent issue={activeIssue} shadow />
+              </div>
+            )}
+          </DragOverlay>
+        </DndContext>
+      )}
     </div>
   )
 }

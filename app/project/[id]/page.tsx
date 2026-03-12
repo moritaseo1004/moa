@@ -19,7 +19,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   if (!project) notFound()
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-44px)]">
+    <div className="flex flex-col min-h-screen">
       {/* Project header */}
       <div className="border-b border-border px-6 py-4">
         <div className="text-xs text-muted-foreground mb-1">

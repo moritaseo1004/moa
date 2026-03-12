@@ -2,31 +2,53 @@
 
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createClient } from '@/lib/supabase/server'
+import { getAuthenticatedUserId } from '@/lib/actions/authz'
 import { logActivity } from '@/lib/data/activity'
 
 type State = { error?: string } | null
+
+export async function deleteComment(
+  commentId: string,
+  issueId: string,
+): Promise<{ error?: string }> {
+  const actorId = await getAuthenticatedUserId()
+  if (!actorId) return { error: 'Unauthorized' }
+
+  const supabase = createAdminClient()
+  const { data: comment, error: findError } = await supabase
+    .from('comments')
+    .select('user_id')
+    .eq('id', commentId)
+    .single()
+
+  if (findError || !comment) return { error: 'Comment not found' }
+  if (comment.user_id !== actorId) return { error: 'Forbidden' }
+
+  const { error } = await supabase.from('comments').delete().eq('id', commentId)
+  if (error) return { error: error.message }
+  revalidatePath(`/issue/${issueId}`)
+  return {}
+}
 
 export async function addComment(_prevState: State, formData: FormData): Promise<State> {
   const issue_id = formData.get('issue_id') as string
   const content = (formData.get('content') as string)?.trim()
 
   if (!content) return { error: 'Comment cannot be empty' }
-
-  const supabaseAuth = await createClient()
-  const { data: { user } } = await supabaseAuth.auth.getUser()
+  const userId = await getAuthenticatedUserId()
+  if (!userId) return { error: 'Unauthorized' }
 
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('comments')
-    .insert({ issue_id, content, user_id: user?.id ?? null })
+    .insert({ issue_id, content, user_id: userId })
     .select('id')
     .single()
 
   if (error) return { error: error.message }
 
   await logActivity({
-    user_id: user?.id ?? null,
+    user_id: userId,
     entity_type: 'comment',
     entity_id: data.id,
     action: 'comment_added',

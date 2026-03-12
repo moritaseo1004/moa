@@ -1,7 +1,7 @@
 import type { IssuePriority } from '@/lib/types'
 
 export const PRIORITY_LABELS: Record<IssuePriority, string> = {
-  urgent: 'Urgent',
+  urgent: 'Critical',
   high: 'High',
   medium: 'Medium',
   low: 'Low',

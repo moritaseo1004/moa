@@ -20,11 +20,13 @@ export interface Project {
   id: string
   name: string
   description: string | null
+  prefix: string
   created_at: string
 }
 
 export interface Issue {
   id: string
+  issue_number: number
   title: string
   description: string | null
   project_id: string
@@ -34,6 +36,7 @@ export interface Issue {
   assignee_id: string | null
   reporter_id: string | null
   source: IssueSource
+  updated_at?: string
   created_at: string
 }
 
@@ -56,6 +59,15 @@ export interface ActivityLog {
   entity_id: string
   action: string
   metadata: Record<string, unknown> | null
+  created_at: string
+}
+
+export interface DashboardNote {
+  id: string
+  user_id: string
+  note_date: string
+  title: string
+  content: string | null
   created_at: string
 }
 
@@ -82,4 +94,20 @@ export interface IssueWithRelations extends Issue {
   assignee?: User | null
   reporter?: User | null
   comments?: CommentWithUser[]
+  issue_attachments?: Pick<IssueAttachment, 'id'>[]
+}
+
+export interface SearchFilters {
+  projectId?: string
+  status?: IssueStatus
+  assigneeId?: string
+}
+
+export interface SearchResult {
+  issueId: string
+  issueTitle: string
+  projectName: string
+  status: IssueStatus
+  assignee: string | null
+  updatedAt: string
 }

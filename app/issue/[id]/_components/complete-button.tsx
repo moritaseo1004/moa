@@ -27,11 +27,11 @@ export function CompleteButton({
     })
   }
 
-  // Keyboard shortcut: C
+  // Keyboard shortcut: Ctrl/Cmd + Enter
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key !== 'c' && e.key !== 'C') return
-      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.key !== 'Enter') return
+      if (!(e.metaKey || e.ctrlKey) || e.altKey) return
       const tag = (e.target as HTMLElement).tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement).isContentEditable) return
       complete()
@@ -52,7 +52,7 @@ export function CompleteButton({
       {isDone ? 'Done' : isPending ? 'Completing…' : 'Complete'}
       {!isDone && (
         <kbd className="ml-1 rounded border border-current/30 px-1 py-px text-[10px] font-mono opacity-60">
-          C
+          Ctrl + Enter
         </kbd>
       )}
     </Button>

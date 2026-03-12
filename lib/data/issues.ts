@@ -7,8 +7,11 @@ export async function getIssuesByProject(projectId: string): Promise<IssueWithRe
     .from('issues')
     .select(`
       *,
+      project:projects(*),
       assignee:users!assignee_id(*),
-      reporter:users!reporter_id(*)
+      reporter:users!reporter_id(*),
+      comments(id),
+      issue_attachments(id)
     `)
     .eq('project_id', projectId)
     .order('created_at', { ascending: false })
@@ -31,4 +34,26 @@ export async function getIssue(id: string): Promise<IssueWithRelations | null> {
     .single()
   if (error) return null
   return data
+}
+
+export async function getDueIssuesForDashboard(userId: string): Promise<IssueWithRelations[]> {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('issues')
+    .select(`
+      *,
+      project:projects(*),
+      assignee:users!assignee_id(*)
+    `)
+    .not('due_date', 'is', null)
+    .neq('status', 'done')
+    .eq('assignee_id', userId)
+    .order('due_date', { ascending: true })
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('[getDueIssuesForDashboard] failed:', error)
+    return []
+  }
+  return data ?? []
 }

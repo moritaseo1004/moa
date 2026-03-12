@@ -1,8 +1,10 @@
 'use client'
 
+import Image from 'next/image'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { createIssue } from '@/lib/actions/issues'
 import { Button } from '@/components/ui/button'
+import { DatePickerInput } from '@/components/ui/date-picker-input'
 import { ALL_PRIORITIES, PRIORITY_LABELS } from '@/lib/priority'
 import { formatBytes } from '@/lib/utils'
 
@@ -20,6 +22,20 @@ export function CreateIssueModal({ projectId }: { projectId: string }) {
   const firstInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  function revokeAndClear() {
+    setSelectedFiles((prev) => {
+      prev.forEach((f) => f.previewUrl && URL.revokeObjectURL(f.previewUrl))
+      return []
+    })
+  }
+
+  function handleClose() {
+    setOpen(false)
+    setState(null)
+    revokeAndClear()
+    formRef.current?.reset()
+  }
+
   // Focus first input when opening
   useEffect(() => {
     if (open) {
@@ -36,20 +52,6 @@ export function CreateIssueModal({ projectId }: { projectId: string }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function handleClose() {
-    setOpen(false)
-    setState(null)
-    revokeAndClear()
-    formRef.current?.reset()
-  }
-
-  function revokeAndClear() {
-    setSelectedFiles((prev) => {
-      prev.forEach((f) => f.previewUrl && URL.revokeObjectURL(f.previewUrl))
-      return []
-    })
-  }
-
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const newFiles = Array.from(e.target.files ?? [])
     if (!newFiles.length) return
@@ -60,6 +62,21 @@ export function CreateIssueModal({ projectId }: { projectId: string }) {
     setSelectedFiles((prev) => [...prev, ...entries])
     // Reset so the same file can be re-selected if removed
     e.target.value = ''
+  }
+
+  function handleDescriptionPaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const imageFiles = Array.from(e.clipboardData.items)
+      .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
+      .map((item) => item.getAsFile())
+      .filter((file): file is File => Boolean(file))
+
+    if (!imageFiles.length) return
+
+    const entries: SelectedFile[] = imageFiles.map((file) => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }))
+    setSelectedFiles((prev) => [...prev, ...entries])
   }
 
   function removeFile(idx: number) {
@@ -91,17 +108,16 @@ export function CreateIssueModal({ projectId }: { projectId: string }) {
       </Button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={handleClose}
           />
 
           {/* Modal */}
-          <div className="relative z-10 w-full max-w-md rounded-xl border border-border bg-background shadow-2xl">
-            <div className="flex items-center justify-between border-b border-border px-5 py-4">
-              <h2 className="text-sm font-semibold">New issue</h2>
+          <div className="relative z-10 w-full max-w-[min(1100px,96vw)] overflow-hidden rounded-xl border border-border bg-background shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border px-6 py-5">
+              <h2 className="text-base font-semibold">New issue</h2>
               <button
                 onClick={handleClose}
                 className="text-muted-foreground hover:text-foreground transition-colors text-lg leading-none"
@@ -110,7 +126,11 @@ export function CreateIssueModal({ projectId }: { projectId: string }) {
               </button>
             </div>
 
-            <form ref={formRef} onSubmit={handleSubmit} className="p-5 space-y-4">
+            <form
+              ref={formRef}
+              onSubmit={handleSubmit}
+              className="dashboard-scroll max-h-[calc(94vh-72px)] space-y-5 overflow-y-auto p-6"
+            >
               <input type="hidden" name="project_id" value={projectId} />
 
               <div className="space-y-1.5">
@@ -133,8 +153,9 @@ export function CreateIssueModal({ projectId }: { projectId: string }) {
                 <textarea
                   name="description"
                   placeholder="Add a description…"
-                  rows={3}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/50 placeholder:text-muted-foreground resize-none"
+                  rows={10}
+                  onPaste={handleDescriptionPaste}
+                  className="min-h-56 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/50 placeholder:text-muted-foreground resize-y"
                 />
               </div>
 
@@ -146,7 +167,7 @@ export function CreateIssueModal({ projectId }: { projectId: string }) {
                   <select
                     name="priority"
                     defaultValue="medium"
-                    className="w-full rounded-lg border border-border bg-background px-2 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/50"
+                    className="w-full rounded-lg border border-border bg-background px-2 py-2 text-sm outline-none focus:ring-0"
                   >
                     {ALL_PRIORITIES.map((p) => (
                       <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>
@@ -158,10 +179,9 @@ export function CreateIssueModal({ projectId }: { projectId: string }) {
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     Due date
                   </label>
-                  <input
+                  <DatePickerInput
                     name="due_date"
-                    type="date"
-                    className="w-full rounded-lg border border-border bg-background px-2 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/50 text-muted-foreground"
+                    className="w-full"
                   />
                 </div>
               </div>
@@ -171,6 +191,7 @@ export function CreateIssueModal({ projectId }: { projectId: string }) {
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     Attachments
+                    <span className="ml-2 normal-case font-normal opacity-60">최대 10MB</span>
                   </label>
                   <button
                     type="button"
@@ -192,7 +213,7 @@ export function CreateIssueModal({ projectId }: { projectId: string }) {
                 </div>
 
                 {selectedFiles.length > 0 && (
-                  <ul className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                  <ul className="dashboard-scroll max-h-56 space-y-1.5 overflow-y-auto pr-1">
                     {selectedFiles.map((sf, idx) => (
                       <li
                         key={idx}
@@ -200,9 +221,12 @@ export function CreateIssueModal({ projectId }: { projectId: string }) {
                       >
                         {sf.previewUrl ? (
                           // Image thumbnail
-                          <img
+                          <Image
                             src={sf.previewUrl}
                             alt={sf.file.name}
+                            width={32}
+                            height={32}
+                            unoptimized
                             className="h-8 w-8 shrink-0 rounded object-cover"
                           />
                         ) : sf.file.type.startsWith('video/') ? (

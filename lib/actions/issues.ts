@@ -2,16 +2,46 @@
 
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/data/activity'
+import { getAuthenticatedUserId } from '@/lib/actions/authz'
 import type { IssueStatus, IssuePriority } from '@/lib/types'
 
 type State = { error?: string } | null
 
-async function getCurrentUserId(): Promise<string | null> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  return user?.id ?? null
+export async function deleteIssue(
+  issueId: string,
+  projectId: string,
+): Promise<{ error?: string }> {
+  const actorId = await getAuthenticatedUserId()
+  if (!actorId) return { error: 'Unauthorized' }
+
+  const supabase = createAdminClient()
+
+  // Clean up Storage files first
+  const { data: attachments } = await supabase
+    .from('issue_attachments')
+    .select('file_url')
+    .eq('issue_id', issueId)
+
+  if (attachments && attachments.length > 0) {
+    const paths = attachments
+      .map((a) => {
+        const url = new URL(a.file_url)
+        const marker = '/object/public/issue-attachments/'
+        const idx = url.pathname.indexOf(marker)
+        return idx !== -1 ? url.pathname.slice(idx + marker.length) : null
+      })
+      .filter(Boolean) as string[]
+    if (paths.length > 0) {
+      await supabase.storage.from('issue-attachments').remove(paths)
+    }
+  }
+
+  const { error } = await supabase.from('issues').delete().eq('id', issueId)
+  if (error) return { error: error.message }
+
+  revalidatePath(`/project/${projectId}`)
+  return {}
 }
 
 export async function createIssue(_prevState: State, formData: FormData): Promise<State> {
@@ -24,7 +54,8 @@ export async function createIssue(_prevState: State, formData: FormData): Promis
   if (!title) return { error: 'Title is required' }
   if (!project_id) return { error: 'Project is required' }
 
-  const reporter_id = await getCurrentUserId()
+  const reporter_id = await getAuthenticatedUserId()
+  if (!reporter_id) return { error: 'Unauthorized' }
 
   const supabase = createAdminClient()
   const { data, error } = await supabase
@@ -89,6 +120,8 @@ export async function updateIssue(_prevState: State, formData: FormData): Promis
   const project_id = formData.get('project_id') as string
 
   if (!title) return { error: 'Title is required' }
+  const actorId = await getAuthenticatedUserId()
+  if (!actorId) return { error: 'Unauthorized' }
 
   const supabase = createAdminClient()
   const { error } = await supabase
@@ -99,6 +132,7 @@ export async function updateIssue(_prevState: State, formData: FormData): Promis
   if (error) return { error: error.message }
 
   await logActivity({
+    user_id: actorId,
     entity_type: 'issue',
     entity_id: id,
     action: 'issue_updated',
@@ -115,6 +149,9 @@ export async function updateIssueStatus(
   status: IssueStatus,
   projectId: string,
 ): Promise<{ error?: string }> {
+  const actorId = await getAuthenticatedUserId()
+  if (!actorId) return { error: 'Unauthorized' }
+
   const supabase = createAdminClient()
 
   const { data: before } = await supabase
@@ -131,6 +168,7 @@ export async function updateIssueStatus(
   if (error) return { error: error.message }
 
   await logActivity({
+    user_id: actorId,
     entity_type: 'issue',
     entity_id: issueId,
     action: status === 'done' ? 'issue_completed' : 'issue_updated',
@@ -147,6 +185,9 @@ export async function updateIssueAssignee(
   assigneeId: string | null,
   projectId: string,
 ): Promise<{ error?: string }> {
+  const actorId = await getAuthenticatedUserId()
+  if (!actorId) return { error: 'Unauthorized' }
+
   const supabase = createAdminClient()
 
   const { error } = await supabase
@@ -157,6 +198,7 @@ export async function updateIssueAssignee(
   if (error) return { error: error.message }
 
   await logActivity({
+    user_id: actorId,
     entity_type: 'issue',
     entity_id: issueId,
     action: 'assignee_changed',
@@ -173,6 +215,9 @@ export async function updateIssuePriority(
   priority: IssuePriority,
   projectId: string,
 ): Promise<{ error?: string }> {
+  const actorId = await getAuthenticatedUserId()
+  if (!actorId) return { error: 'Unauthorized' }
+
   const supabase = createAdminClient()
 
   const { error } = await supabase
@@ -183,6 +228,7 @@ export async function updateIssuePriority(
   if (error) return { error: error.message }
 
   await logActivity({
+    user_id: actorId,
     entity_type: 'issue',
     entity_id: issueId,
     action: 'issue_updated',
@@ -199,6 +245,9 @@ export async function updateIssueDueDate(
   dueDate: string | null,
   projectId: string,
 ): Promise<{ error?: string }> {
+  const actorId = await getAuthenticatedUserId()
+  if (!actorId) return { error: 'Unauthorized' }
+
   const supabase = createAdminClient()
 
   const { error } = await supabase
@@ -209,6 +258,7 @@ export async function updateIssueDueDate(
   if (error) return { error: error.message }
 
   await logActivity({
+    user_id: actorId,
     entity_type: 'issue',
     entity_id: issueId,
     action: 'issue_updated',
@@ -225,6 +275,9 @@ export async function moveIssueToProject(
   newProjectId: string,
   currentProjectId: string,
 ): Promise<{ error?: string }> {
+  const actorId = await getAuthenticatedUserId()
+  if (!actorId) return { error: 'Unauthorized' }
+
   const supabase = createAdminClient()
 
   const { error } = await supabase
@@ -235,6 +288,7 @@ export async function moveIssueToProject(
   if (error) return { error: error.message }
 
   await logActivity({
+    user_id: actorId,
     entity_type: 'issue',
     entity_id: issueId,
     action: 'issue_updated',

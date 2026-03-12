@@ -30,7 +30,7 @@ export function PrioritySelect({
       onChange={handleChange}
       disabled={isPending}
       className={cn(
-        'w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-opacity',
+        'w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:ring-0 transition-opacity',
         isPending && 'opacity-50',
         PRIORITY_COLORS[current],
       )}
