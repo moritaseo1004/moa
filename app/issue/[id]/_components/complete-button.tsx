@@ -1,0 +1,60 @@
+'use client'
+
+import { useTransition, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { CheckCheck } from 'lucide-react'
+import { updateIssueStatus } from '@/lib/actions/issues'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+
+export function CompleteButton({
+  issueId,
+  projectId,
+  isDone,
+}: {
+  issueId: string
+  projectId: string
+  isDone: boolean
+}) {
+  const [isPending, startTransition] = useTransition()
+  const router = useRouter()
+
+  function complete() {
+    if (isDone || isPending) return
+    startTransition(async () => {
+      await updateIssueStatus(issueId, 'done', projectId)
+      router.refresh()
+    })
+  }
+
+  // Keyboard shortcut: C
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== 'c' && e.key !== 'C') return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      const tag = (e.target as HTMLElement).tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement).isContentEditable) return
+      complete()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [issueId, projectId, isDone]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <Button
+      onClick={complete}
+      disabled={isDone || isPending}
+      variant={isDone ? 'secondary' : 'default'}
+      size="sm"
+      className={cn(isDone && 'opacity-60')}
+    >
+      <CheckCheck />
+      {isDone ? 'Done' : isPending ? 'Completing…' : 'Complete'}
+      {!isDone && (
+        <kbd className="ml-1 rounded border border-current/30 px-1 py-px text-[10px] font-mono opacity-60">
+          C
+        </kbd>
+      )}
+    </Button>
+  )
+}

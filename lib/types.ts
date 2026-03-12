@@ -1,0 +1,85 @@
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+export type IssueStatus = 'backlog' | 'todo' | 'doing' | 'review' | 'done'
+
+export type IssueSource = 'slack' | 'manual' | 'system'
+
+export type IssuePriority = 'urgent' | 'high' | 'medium' | 'low'
+
+// ─── Entities ─────────────────────────────────────────────────────────────────
+
+export interface User {
+  id: string
+  name: string
+  email: string
+  slack_user_id: string | null
+  created_at: string
+}
+
+export interface Project {
+  id: string
+  name: string
+  description: string | null
+  created_at: string
+}
+
+export interface Issue {
+  id: string
+  title: string
+  description: string | null
+  project_id: string
+  status: IssueStatus
+  priority: IssuePriority
+  due_date: string | null
+  assignee_id: string | null
+  reporter_id: string | null
+  source: IssueSource
+  created_at: string
+}
+
+export interface Comment {
+  id: string
+  issue_id: string
+  user_id: string | null
+  content: string
+  created_at: string
+}
+
+export interface CommentWithUser extends Comment {
+  user?: User | null
+}
+
+export interface ActivityLog {
+  id: string
+  user_id: string | null
+  entity_type: 'issue' | 'project' | 'comment'
+  entity_id: string
+  action: string
+  metadata: Record<string, unknown> | null
+  created_at: string
+}
+
+// ─── Attachments ──────────────────────────────────────────────────────────────
+
+export type AttachmentFileType = 'image' | 'video' | 'file'
+
+export interface IssueAttachment {
+  id: string
+  issue_id: string
+  file_name: string
+  mime_type: string
+  file_type: AttachmentFileType
+  file_size: number
+  file_url: string
+  thumbnail_url: string | null
+  created_at: string
+}
+
+// ─── Joined / enriched types ──────────────────────────────────────────────────
+
+export interface IssueWithRelations extends Issue {
+  project?: Project
+  assignee?: User | null
+  reporter?: User | null
+  comments?: CommentWithUser[]
+}
