@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getAuthenticatedUserId } from '@/lib/actions/authz'
 import type { Project } from '@/lib/types'
+import { isInboxProject } from '@/lib/project-utils'
 
 function generatePrefix(name: string): string {
   const letters = name.replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase()
@@ -30,6 +31,17 @@ export async function deleteProject(projectId: string): Promise<{ error?: string
   if (!actorId) return { error: 'Unauthorized' }
 
   const supabase = createAdminClient()
+
+  const { data: project } = await supabase
+    .from('projects')
+    .select('id, name')
+    .eq('id', projectId)
+    .single()
+
+  if (!project) return { error: 'Project not found.' }
+  if (isInboxProject(project)) {
+    return { error: 'Inbox 프로젝트는 삭제할 수 없습니다.' }
+  }
 
   // Guard: prevent deleting the last project
   const { count } = await supabase
@@ -78,6 +90,7 @@ export async function deleteProject(projectId: string): Promise<{ error?: string
   if (error) return { error: error.message }
 
   revalidatePath('/projects')
+  revalidatePath('/dashboard')
   return {}
 }
 

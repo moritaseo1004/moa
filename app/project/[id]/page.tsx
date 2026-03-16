@@ -5,6 +5,7 @@ import { getIssuesByProject } from '@/lib/data/issues'
 import { getUsers } from '@/lib/data/users'
 import { KanbanBoard } from './_components/kanban-board'
 import { CreateIssueModal } from './_components/create-issue-modal'
+import { IssueDetailSheet } from './_components/issue-detail-sheet'
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -12,8 +13,15 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return { title: project ? `${project.name} — Tracker` : 'Project' }
 }
 
-export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ProjectPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ issue?: string }>
+}) {
   const { id } = await params
+  const { issue: selectedIssueId } = await searchParams
   const [project, issues, users] = await Promise.all([getProject(id), getIssuesByProject(id), getUsers()])
 
   if (!project) notFound()
@@ -43,6 +51,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       <div className="flex-1 overflow-x-auto px-6 py-6">
         <KanbanBoard issues={issues} projectId={project.id} users={users} />
       </div>
+
+      {selectedIssueId ? (
+        <IssueDetailSheet issueId={selectedIssueId} projectId={project.id} />
+      ) : null}
     </div>
   )
 }

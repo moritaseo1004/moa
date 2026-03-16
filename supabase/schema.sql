@@ -16,6 +16,12 @@ create table public.users (
   name          text        not null,
   email         text        not null unique,
   slack_user_id text,
+  role          text        not null default 'member' check (role in ('admin', 'member')),
+  is_approved   boolean     not null default false,
+  approved_at   timestamptz,
+  approved_by   uuid        references public.users(id) on delete set null,
+  auth_provider text        not null default 'email',
+  last_sign_in_at timestamptz,
   created_at    timestamptz not null default now()
 );
 
@@ -35,6 +41,7 @@ create table public.issues (
   project_id  uuid         not null references public.projects(id) on delete cascade,
   status      issue_status not null default 'backlog',
   priority    issue_priority not null default 'medium',
+  start_date  date,
   due_date    date,
   assignee_id uuid         references public.users(id) on delete set null,
   reporter_id uuid         references public.users(id) on delete set null,

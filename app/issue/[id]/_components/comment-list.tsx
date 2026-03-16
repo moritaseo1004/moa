@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { deleteComment } from '@/lib/actions/comments'
+import { formatSeoulDateTime } from '@/lib/date-format'
 import type { CommentWithUser } from '@/lib/types'
 
 export function CommentList({
@@ -58,6 +59,7 @@ function CommentItem({
   const [isPending, startTransition] = useTransition()
 
   const canDelete = currentUserId && comment.user_id === currentUserId
+  const createdAtLabel = useMemo(() => formatSeoulDateTime(comment.created_at), [comment.created_at])
 
   function handleDelete() {
     startTransition(async () => {
@@ -73,7 +75,7 @@ function CommentItem({
         </span>
         <div className="flex items-center gap-3 shrink-0">
           <span className="text-xs text-muted-foreground">
-            {new Date(comment.created_at).toLocaleString()}
+            {createdAtLabel}
           </span>
           {canDelete && (
             confirm ? (

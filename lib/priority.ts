@@ -8,10 +8,10 @@ export const PRIORITY_LABELS: Record<IssuePriority, string> = {
 }
 
 export const PRIORITY_COLORS: Record<IssuePriority, string> = {
-  urgent: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400',
-  high: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400',
-  medium: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400',
-  low: 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400',
+  urgent: 'border border-rose-500/20 bg-rose-500/10 text-rose-300',
+  high: 'border border-amber-500/20 bg-amber-500/10 text-amber-300',
+  medium: 'border border-sky-500/20 bg-sky-500/10 text-sky-300',
+  low: 'border border-zinc-500/20 bg-zinc-500/10 text-zinc-300',
 }
 
 export const PRIORITY_ORDER: Record<IssuePriority, number> = {

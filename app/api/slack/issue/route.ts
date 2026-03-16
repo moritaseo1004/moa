@@ -3,6 +3,7 @@ import { verifySlackSignature, parseSlashPayload } from '@/lib/slack/verify'
 import { getInboxProject } from '@/lib/data/projects'
 import { getUserBySlackId } from '@/lib/data/users'
 import { logActivity } from '@/lib/data/activity'
+import { getTodayYmd } from '@/lib/date-utils'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 // ── Slack response helpers ────────────────────────────────────────────────────
@@ -64,6 +65,7 @@ export async function POST(req: NextRequest) {
       project_id: inboxProject.id,
       status: 'backlog',
       source: 'slack',
+      start_date: getTodayYmd(),
       reporter_id: reporter?.id ?? null,
       assignee_id: null,
     })
@@ -85,6 +87,7 @@ export async function POST(req: NextRequest) {
       title,
       project_id: inboxProject.id,
       source: 'slack',
+      start_date: getTodayYmd(),
       slack_user_id: payload.user_id || null,
       slack_channel_id: payload.channel_id || null,
       slack_channel_name: payload.channel_name || null,

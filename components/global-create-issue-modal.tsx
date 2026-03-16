@@ -2,11 +2,12 @@
 
 import Image from 'next/image'
 import { useEffect, useRef, useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { createIssue } from '@/lib/actions/issues'
 import { getProjectsAction } from '@/lib/actions/projects'
 import { Button } from '@/components/ui/button'
 import { DatePickerInput } from '@/components/ui/date-picker-input'
+import { getTodayYmd } from '@/lib/date-utils'
 import { ALL_PRIORITIES, PRIORITY_LABELS } from '@/lib/priority'
 import { formatBytes } from '@/lib/utils'
 import type { Project } from '@/lib/types'
@@ -18,11 +19,14 @@ interface SelectedFile {
 
 export function GlobalCreateIssueModal() {
   const router = useRouter()
+  const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [projects, setProjects] = useState<Project[]>([])
   const [state, setState] = useState<{ error?: string } | null>(null)
   const [isPending, startTransition] = useTransition()
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([])
+  const [selectedProjectId, setSelectedProjectId] = useState('')
+  const [startDateValue, setStartDateValue] = useState<string | null>(getTodayYmd())
   const [dueDateValue, setDueDateValue] = useState<string | null>(null)
   const formRef = useRef<HTMLFormElement>(null)
   const firstInputRef = useRef<HTMLInputElement>(null)
@@ -38,6 +42,8 @@ export function GlobalCreateIssueModal() {
   function handleClose() {
     setOpen(false)
     setState(null)
+    setSelectedProjectId('')
+    setStartDateValue(getTodayYmd())
     setDueDateValue(null)
     revokeAndClear()
     formRef.current?.reset()
@@ -51,6 +57,8 @@ export function GlobalCreateIssueModal() {
       if ((e.target as HTMLElement).isContentEditable) return
       if (e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === 'n') {
         e.preventDefault()
+        setSelectedProjectId('')
+        setStartDateValue(getTodayYmd())
         setDueDateValue(null)
         setOpen(true)
       }
@@ -78,6 +86,8 @@ export function GlobalCreateIssueModal() {
   useEffect(() => {
     function onOpenWithPreset(event: Event) {
       const customEvent = event as CustomEvent<{ dueDate?: string | null }>
+      setSelectedProjectId('')
+      setStartDateValue(getTodayYmd())
       setDueDateValue(customEvent.detail?.dueDate ?? null)
       setOpen(true)
     }
@@ -129,6 +139,7 @@ export function GlobalCreateIssueModal() {
       const result = await createIssue(null, formData)
       setState(result)
       if (result === null) {
+        router.replace(pathname)
         router.refresh()
         handleClose()
       }
@@ -169,6 +180,8 @@ export function GlobalCreateIssueModal() {
             <select
               name="project_id"
               required
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
               className="w-full rounded-lg border border-border bg-background px-2 py-2 text-sm outline-none focus:ring-0"
             >
               <option value="">Select a project…</option>
@@ -204,7 +217,7 @@ export function GlobalCreateIssueModal() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Priority
@@ -222,6 +235,19 @@ export function GlobalCreateIssueModal() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Start date
+              </label>
+              <DatePickerInput
+                name="start_date"
+                value={startDateValue}
+                onValueChange={setStartDateValue}
+                className="w-full"
+                placeholder="Start date"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Due date
               </label>
               <DatePickerInput
@@ -229,9 +255,14 @@ export function GlobalCreateIssueModal() {
                 value={dueDateValue}
                 onValueChange={setDueDateValue}
                 className="w-full"
+                placeholder="Due date"
               />
             </div>
           </div>
+
+          <p className="text-xs text-muted-foreground">
+            Start date and due date are optional.
+          </p>
 
           {/* Attachments */}
           <div className="space-y-2">

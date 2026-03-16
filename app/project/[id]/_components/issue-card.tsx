@@ -1,22 +1,16 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { useSyncExternalStore } from 'react'
-import { BookOpen, CheckCircle2, Circle, ListTodo, PlayCircle, ScanSearch, type LucideIcon } from 'lucide-react'
+import { PriorityLabel, StatusBadge } from '@/components/issue-meta-badges'
 import { cn } from '@/lib/utils'
-import { PRIORITY_COLORS, PRIORITY_LABELS } from '@/lib/priority'
 import { STATUS_CARD_TINT } from '@/lib/status'
-import type { IssueWithRelations, IssueStatus } from '@/lib/types'
-
-const STATUS_ICONS: Record<IssueStatus, LucideIcon> = {
-  backlog: Circle,
-  todo: ListTodo,
-  doing: PlayCircle,
-  review: ScanSearch,
-  done: CheckCircle2,
-}
+import { formatScheduleLabel } from '@/lib/issue-schedule'
+import type { IssueWithRelations } from '@/lib/types'
+import type { IssueOpenMode } from './kanban-board'
 
 // Visual card only — used both for the real card and the DragOverlay
 export function IssueCardContent({
@@ -26,47 +20,47 @@ export function IssueCardContent({
   issue: IssueWithRelations
   shadow?: boolean
 }) {
-  const StatusIcon = STATUS_ICONS[issue.status]
-
   return (
     <div
       className={cn(
-        'rounded-xl border px-3 py-3 select-none space-y-2.5',
+        'select-none space-y-2.5 rounded-md border px-3 py-3',
         STATUS_CARD_TINT[issue.status],
         shadow && 'shadow-xl ring-1 ring-border',
       )}
     >
-      <div className="flex items-start gap-2">
-        <BookOpen className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
-        <p className="text-sm font-semibold leading-snug line-clamp-2">{issue.title}</p>
-      </div>
+      <p className="text-sm font-semibold leading-snug line-clamp-2">{issue.title}</p>
 
       <div className="flex items-center justify-between gap-2">
+        <StatusBadge status={issue.status} />
         <p className="text-[11px] font-mono text-muted-foreground/80 leading-none">
           {issue.project?.prefix}-{issue.issue_number}
         </p>
-        <StatusIcon className="h-3.5 w-3.5 text-muted-foreground/70" />
       </div>
 
       <div className="flex items-center justify-between gap-2">
-        <span
-          className={cn(
-            'rounded-full px-2 py-0.5 text-[10px] font-semibold',
-            PRIORITY_COLORS[issue.priority],
-          )}
-        >
-          {PRIORITY_LABELS[issue.priority]}
-        </span>
+        <PriorityLabel priority={issue.priority} />
         <span className="text-xs text-muted-foreground truncate max-w-[120px] text-right">
           {issue.assignee?.name ?? 'Unassigned'}
         </span>
+      </div>
+
+      <div className="rounded-sm border border-border bg-[#202020] px-2 py-1 text-[11px] text-muted-foreground">
+        {formatScheduleLabel(issue.start_date, issue.due_date)}
       </div>
     </div>
   )
 }
 
 // Draggable card with grip handle + link
-export function IssueCard({ issue }: { issue: IssueWithRelations }) {
+export function IssueCard({
+  issue,
+  openMode,
+}: {
+  issue: IssueWithRelations
+  openMode: IssueOpenMode
+}) {
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -75,10 +69,15 @@ export function IssueCard({ issue }: { issue: IssueWithRelations }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: issue.id,
   })
+  const nextParams = new URLSearchParams(searchParams.toString())
+  nextParams.set('issue', issue.id)
+  const panelHref = `${pathname}?${nextParams.toString()}`
+  const pageHref = `/issue/${issue.id}`
+  const href = openMode === 'page' ? pageHref : panelHref
 
   return (
     <Link
-      href={`/issue/${issue.id}`}
+      href={href}
       ref={setNodeRef}
       {...(mounted ? attributes : {})}
       {...(mounted ? listeners : {})}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { updateIssueDueDate } from '@/lib/actions/issues'
 import { DatePickerInput } from '@/components/ui/date-picker-input'
 import { cn } from '@/lib/utils'
@@ -14,6 +14,7 @@ export function DueDateInput({
   projectId: string
   current: string | null
 }) {
+  const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   const today = new Date().toISOString().slice(0, 10)
@@ -21,21 +22,26 @@ export function DueDateInput({
   const isToday = current && current === today
 
   function handleChange(val: string | null) {
-    startTransition(() => {
-      updateIssueDueDate(issueId, val, projectId)
+    setError(null)
+    startTransition(async () => {
+      const result = await updateIssueDueDate(issueId, val, projectId)
+      if (result?.error) setError(result.error)
     })
   }
 
   return (
-    <DatePickerInput
-      value={current}
-      onValueChange={handleChange}
-      disabled={isPending}
-      className="w-full transition-opacity"
-      displayClassName={cn(
-        isOverdue && 'text-red-500',
-        isToday && !isOverdue && 'text-amber-500',
-      )}
-    />
+    <div className="space-y-1.5">
+      <DatePickerInput
+        value={current}
+        onValueChange={handleChange}
+        disabled={isPending}
+        className="w-full transition-opacity"
+        displayClassName={cn(
+          isOverdue && 'text-red-500',
+          isToday && !isOverdue && 'text-amber-500',
+        )}
+      />
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
   )
 }

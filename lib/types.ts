@@ -13,6 +13,12 @@ export interface User {
   name: string
   email: string
   slack_user_id: string | null
+  role: 'admin' | 'member'
+  is_approved: boolean
+  approved_at: string | null
+  approved_by: string | null
+  auth_provider: string
+  last_sign_in_at: string | null
   created_at: string
 }
 
@@ -32,6 +38,7 @@ export interface Issue {
   project_id: string
   status: IssueStatus
   priority: IssuePriority
+  start_date: string | null
   due_date: string | null
   assignee_id: string | null
   reporter_id: string | null
@@ -60,6 +67,10 @@ export interface ActivityLog {
   action: string
   metadata: Record<string, unknown> | null
   created_at: string
+}
+
+export interface ActivityLogWithUser extends ActivityLog {
+  user?: User | null
 }
 
 export interface DashboardNote {

@@ -5,13 +5,16 @@ import { cn } from '@/lib/utils'
 import { STATUS_LABELS, STATUS_HEADER_BOX, STATUS_COLUMN_SURFACE } from '@/lib/status'
 import { IssueCard } from './issue-card'
 import type { IssueWithRelations, IssueStatus } from '@/lib/types'
+import type { IssueOpenMode } from './kanban-board'
 
 export function KanbanColumn({
   status,
   issues,
+  openMode,
 }: {
   status: IssueStatus
   issues: IssueWithRelations[]
+  openMode: IssueOpenMode
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
 
@@ -20,7 +23,7 @@ export function KanbanColumn({
       {/* Column header */}
       <div
         className={cn(
-          'flex items-center justify-between rounded-xl border px-3 py-2',
+          'flex items-center justify-between rounded-md border px-3 py-2',
           STATUS_HEADER_BOX[status],
         )}
       >
@@ -32,13 +35,13 @@ export function KanbanColumn({
       <div
         ref={setNodeRef}
         className={cn(
-          'flex flex-col gap-2 rounded-xl border p-2.5 min-h-[140px] transition-colors duration-150',
+          'flex min-h-[140px] flex-col gap-2 rounded-md border p-2.5 transition-colors duration-150',
           STATUS_COLUMN_SURFACE[status],
           isOver && 'ring-1 ring-primary/40',
         )}
       >
         {issues.map((issue) => (
-          <IssueCard key={issue.id} issue={issue} />
+          <IssueCard key={issue.id} issue={issue} openMode={openMode} />
         ))}
       </div>
     </div>

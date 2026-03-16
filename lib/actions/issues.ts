@@ -4,9 +4,17 @@ import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { logActivity } from '@/lib/data/activity'
 import { getAuthenticatedUserId } from '@/lib/actions/authz'
+import { getTodayYmd } from '@/lib/date-utils'
 import type { IssueStatus, IssuePriority } from '@/lib/types'
 
 type State = { error?: string } | null
+
+function validateSchedule(startDate: string | null, dueDate: string | null) {
+  if (startDate && dueDate && startDate > dueDate) {
+    return '시작일은 마감일보다 늦을 수 없습니다.'
+  }
+  return null
+}
 
 export async function deleteIssue(
   issueId: string,
@@ -41,6 +49,7 @@ export async function deleteIssue(
   if (error) return { error: error.message }
 
   revalidatePath(`/project/${projectId}`)
+  revalidatePath('/inbox')
   return {}
 }
 
@@ -49,10 +58,13 @@ export async function createIssue(_prevState: State, formData: FormData): Promis
   const description = (formData.get('description') as string)?.trim() || null
   const project_id = formData.get('project_id') as string
   const priority = (formData.get('priority') as IssuePriority) || 'medium'
+  const start_date = (formData.get('start_date') as string) || getTodayYmd()
   const due_date = (formData.get('due_date') as string) || null
 
   if (!title) return { error: 'Title is required' }
   if (!project_id) return { error: 'Project is required' }
+  const scheduleError = validateSchedule(start_date, due_date)
+  if (scheduleError) return { error: scheduleError }
 
   const reporter_id = await getAuthenticatedUserId()
   if (!reporter_id) return { error: 'Unauthorized' }
@@ -60,7 +72,7 @@ export async function createIssue(_prevState: State, formData: FormData): Promis
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('issues')
-    .insert({ title, description, project_id, status: 'backlog', source: 'manual', reporter_id, priority, due_date })
+    .insert({ title, description, project_id, status: 'backlog', source: 'manual', reporter_id, priority, start_date, due_date })
     .select('id')
     .single()
 
@@ -71,7 +83,7 @@ export async function createIssue(_prevState: State, formData: FormData): Promis
     entity_type: 'issue',
     entity_id: data.id,
     action: 'issue_created',
-    metadata: { title, project_id },
+    metadata: { title, project_id, start_date, due_date },
   })
 
   // Upload attachments if any
@@ -110,6 +122,9 @@ export async function createIssue(_prevState: State, formData: FormData): Promis
   }
 
   revalidatePath(`/project/${project_id}`)
+  revalidatePath('/dashboard')
+  revalidatePath('/calendar')
+  revalidatePath('/inbox')
   return null
 }
 
@@ -141,6 +156,7 @@ export async function updateIssue(_prevState: State, formData: FormData): Promis
 
   revalidatePath(`/issue/${id}`)
   revalidatePath(`/project/${project_id}`)
+  revalidatePath('/inbox')
   return null
 }
 
@@ -177,6 +193,9 @@ export async function updateIssueStatus(
 
   revalidatePath(`/issue/${issueId}`)
   revalidatePath(`/project/${projectId}`)
+  revalidatePath('/dashboard')
+  revalidatePath('/calendar')
+  revalidatePath('/inbox')
   return {}
 }
 
@@ -207,6 +226,9 @@ export async function updateIssueAssignee(
 
   revalidatePath(`/issue/${issueId}`)
   revalidatePath(`/project/${projectId}`)
+  revalidatePath('/dashboard')
+  revalidatePath('/calendar')
+  revalidatePath('/inbox')
   return {}
 }
 
@@ -237,6 +259,9 @@ export async function updateIssuePriority(
 
   revalidatePath(`/issue/${issueId}`)
   revalidatePath(`/project/${projectId}`)
+  revalidatePath('/dashboard')
+  revalidatePath('/calendar')
+  revalidatePath('/inbox')
   return {}
 }
 
@@ -249,6 +274,15 @@ export async function updateIssueDueDate(
   if (!actorId) return { error: 'Unauthorized' }
 
   const supabase = createAdminClient()
+
+  const { data: issue } = await supabase
+    .from('issues')
+    .select('start_date')
+    .eq('id', issueId)
+    .single()
+
+  const scheduleError = validateSchedule(issue?.start_date ?? null, dueDate)
+  if (scheduleError) return { error: scheduleError }
 
   const { error } = await supabase
     .from('issues')
@@ -267,6 +301,51 @@ export async function updateIssueDueDate(
 
   revalidatePath(`/issue/${issueId}`)
   revalidatePath(`/project/${projectId}`)
+  revalidatePath('/dashboard')
+  revalidatePath('/calendar')
+  revalidatePath('/inbox')
+  return {}
+}
+
+export async function updateIssueStartDate(
+  issueId: string,
+  startDate: string | null,
+  projectId: string,
+): Promise<{ error?: string }> {
+  const actorId = await getAuthenticatedUserId()
+  if (!actorId) return { error: 'Unauthorized' }
+
+  const supabase = createAdminClient()
+
+  const { data: issue } = await supabase
+    .from('issues')
+    .select('due_date')
+    .eq('id', issueId)
+    .single()
+
+  const scheduleError = validateSchedule(startDate, issue?.due_date ?? null)
+  if (scheduleError) return { error: scheduleError }
+
+  const { error } = await supabase
+    .from('issues')
+    .update({ start_date: startDate || null })
+    .eq('id', issueId)
+
+  if (error) return { error: error.message }
+
+  await logActivity({
+    user_id: actorId,
+    entity_type: 'issue',
+    entity_id: issueId,
+    action: 'issue_updated',
+    metadata: { field: 'start_date', to: startDate },
+  })
+
+  revalidatePath(`/issue/${issueId}`)
+  revalidatePath(`/project/${projectId}`)
+  revalidatePath('/dashboard')
+  revalidatePath('/calendar')
+  revalidatePath('/inbox')
   return {}
 }
 
@@ -298,5 +377,8 @@ export async function moveIssueToProject(
   revalidatePath(`/issue/${issueId}`)
   revalidatePath(`/project/${currentProjectId}`)
   revalidatePath(`/project/${newProjectId}`)
+  revalidatePath('/dashboard')
+  revalidatePath('/calendar')
+  revalidatePath('/inbox')
   return {}
 }

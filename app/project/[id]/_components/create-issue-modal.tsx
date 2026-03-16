@@ -2,9 +2,11 @@
 
 import Image from 'next/image'
 import { useEffect, useRef, useState, useTransition } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { createIssue } from '@/lib/actions/issues'
 import { Button } from '@/components/ui/button'
 import { DatePickerInput } from '@/components/ui/date-picker-input'
+import { getTodayYmd } from '@/lib/date-utils'
 import { ALL_PRIORITIES, PRIORITY_LABELS } from '@/lib/priority'
 import { formatBytes } from '@/lib/utils'
 
@@ -14,10 +16,13 @@ interface SelectedFile {
 }
 
 export function CreateIssueModal({ projectId }: { projectId: string }) {
+  const router = useRouter()
+  const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [state, setState] = useState<{ error?: string } | null>(null)
   const [isPending, startTransition] = useTransition()
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([])
+  const [startDateValue, setStartDateValue] = useState<string | null>(getTodayYmd())
   const formRef = useRef<HTMLFormElement>(null)
   const firstInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -32,6 +37,7 @@ export function CreateIssueModal({ projectId }: { projectId: string }) {
   function handleClose() {
     setOpen(false)
     setState(null)
+    setStartDateValue(getTodayYmd())
     revokeAndClear()
     formRef.current?.reset()
   }
@@ -97,6 +103,8 @@ export function CreateIssueModal({ projectId }: { projectId: string }) {
       setState(result)
       if (result === null) {
         handleClose()
+        router.replace(pathname)
+        router.refresh()
       }
     })
   }
@@ -159,7 +167,7 @@ export function CreateIssueModal({ projectId }: { projectId: string }) {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     Priority
@@ -177,11 +185,25 @@ export function CreateIssueModal({ projectId }: { projectId: string }) {
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Start date
+                  </label>
+                  <DatePickerInput
+                    name="start_date"
+                    value={startDateValue}
+                    onValueChange={setStartDateValue}
+                    className="w-full"
+                    placeholder="Start date"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     Due date
                   </label>
                   <DatePickerInput
                     name="due_date"
                     className="w-full"
+                    placeholder="Due date"
                   />
                 </div>
               </div>

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { deleteProject, updateProjectPrefix } from '@/lib/actions/projects'
+import { isInboxProject } from '@/lib/project-utils'
 import type { Project } from '@/lib/types'
 
 function PrefixEditor({ project }: { project: Project }) {
@@ -70,6 +71,7 @@ function PrefixEditor({ project }: { project: Project }) {
 }
 
 export function ProjectList({ projects }: { projects: Project[] }) {
+  const visibleProjects = projects.filter((project) => !isInboxProject(project))
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -85,7 +87,7 @@ export function ProjectList({ projects }: { projects: Project[] }) {
     })
   }
 
-  if (projects.length === 0) {
+  if (visibleProjects.length === 0) {
     return (
       <p className="px-4 py-6 text-sm text-muted-foreground text-center">
         No projects yet. Create one below.
@@ -98,7 +100,7 @@ export function ProjectList({ projects }: { projects: Project[] }) {
       {error && (
         <p className="px-4 py-2 text-sm text-destructive">{error}</p>
       )}
-      {projects.map((project) => (
+      {visibleProjects.map((project) => (
         <div
           key={project.id}
           className="flex items-center justify-between px-4 py-3 hover:bg-muted/50 transition-colors"

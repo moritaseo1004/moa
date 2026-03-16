@@ -9,6 +9,7 @@ interface DatePickerInputProps {
   value?: string | null
   defaultValue?: string | null
   onValueChange?: (value: string | null) => void
+  required?: boolean
   disabled?: boolean
   className?: string
   displayClassName?: string
@@ -20,6 +21,7 @@ export function DatePickerInput({
   value,
   defaultValue,
   onValueChange,
+  required,
   disabled,
   className,
   displayClassName,
@@ -36,7 +38,12 @@ export function DatePickerInput({
     if (!hasValue) return placeholder
     const parsed = new Date(`${current}T00:00:00`)
     if (Number.isNaN(parsed.getTime())) return current
-    return parsed.toLocaleDateString()
+    return new Intl.DateTimeFormat('ko-KR', {
+      timeZone: 'Asia/Seoul',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+    }).format(parsed)
   }, [current, hasValue, placeholder])
 
   function setValue(next: string) {
@@ -64,6 +71,7 @@ export function DatePickerInput({
         type="date"
         value={current}
         onChange={(e) => setValue(e.target.value)}
+        required={required}
         disabled={disabled}
         style={{ colorScheme: 'dark' }}
         className="absolute left-0 top-0 h-0 w-0 opacity-0 pointer-events-none"

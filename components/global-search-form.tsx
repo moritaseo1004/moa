@@ -116,13 +116,13 @@ export function GlobalSearchForm() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="group flex h-9 w-full max-w-xl items-center gap-2 rounded-full border border-[#30363d] bg-[#0d1117] px-3.5 text-left shadow-sm transition-colors hover:bg-[#111826]"
+        className="group flex h-9 w-full max-w-xl items-center gap-2 rounded-md border border-border bg-[#1f1f1f] px-3.5 text-left shadow-sm transition-colors hover:bg-[#232323]"
       >
         <Search className="h-4 w-4 text-muted-foreground/80" />
         <span className="flex-1 truncate text-sm text-muted-foreground">
           Search issues across all projects...
         </span>
-        <kbd className="rounded-md border border-[#30363d] bg-[#010409] px-2 py-0.5 text-[11px] text-muted-foreground">
+        <kbd className="rounded-sm border border-border bg-[#181818] px-2 py-0.5 text-[11px] text-muted-foreground">
           Ctrl + K
         </kbd>
       </button>
@@ -131,7 +131,7 @@ export function GlobalSearchForm() {
         <div className="fixed inset-0 z-[70] bg-black/45 backdrop-blur-[2px]">
           <div
             ref={modalRef}
-            className="relative mx-auto mt-[10vh] w-[min(720px,92vw)] overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
+            className="relative mx-auto mt-[10vh] w-[min(720px,92vw)] overflow-hidden rounded-lg border border-border bg-card shadow-2xl"
           >
             <form onSubmit={goToSearch} className="border-b border-border p-3">
               <div className="relative">
@@ -165,11 +165,11 @@ export function GlobalSearchForm() {
                     }
                   }}
                   placeholder="Search issues across all projects..."
-                  className="h-11 w-full rounded-xl border border-border bg-background pl-9 pr-24 text-sm outline-none focus:ring-2 focus:ring-ring/40"
+                  className="h-11 w-full rounded-md border border-border bg-background pl-9 pr-24 text-sm outline-none focus:ring-2 focus:ring-ring/40"
                 />
                 <button
                   type="submit"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground"
                 >
                   Enter
                 </button>
@@ -187,7 +187,7 @@ export function GlobalSearchForm() {
 
               <div className="space-y-1.5">
                 {preview.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                  <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
                     No quick matches. Press Enter to see full results.
                   </div>
                 ) : (
@@ -201,7 +201,7 @@ export function GlobalSearchForm() {
                       }}
                       onClick={() => setOpen(false)}
                       className={cn(
-                        'flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors',
+                        'flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors',
                         activeIndex === preview.findIndex((p) => p.issueId === item.issueId)
                           ? 'border-primary/40 bg-muted/50'
                           : 'border-border/70 bg-background/60 hover:bg-muted/40',
@@ -222,7 +222,7 @@ export function GlobalSearchForm() {
               <button
                 type="button"
                 onClick={() => goToSearch()}
-                className="mt-2 flex w-full items-center justify-center rounded-xl border border-border bg-background px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                className="mt-2 flex w-full items-center justify-center rounded-lg border border-border bg-background px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
               >
                 View all results
               </button>

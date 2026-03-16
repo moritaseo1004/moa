@@ -1,10 +1,17 @@
 'use client'
 
 import { useTransition } from 'react'
+import { IssueDetailSelect } from './issue-detail-select'
 import { updateIssuePriority } from '@/lib/actions/issues'
-import { ALL_PRIORITIES, PRIORITY_LABELS, PRIORITY_COLORS } from '@/lib/priority'
-import { cn } from '@/lib/utils'
+import { ALL_PRIORITIES, PRIORITY_LABELS } from '@/lib/priority'
 import type { IssuePriority } from '@/lib/types'
+
+const PRIORITY_DOT_COLORS: Record<IssuePriority, string> = {
+  urgent: 'bg-rose-400',
+  high: 'bg-amber-400',
+  medium: 'bg-sky-400',
+  low: 'bg-zinc-400',
+}
 
 export function PrioritySelect({
   issueId,
@@ -17,27 +24,22 @@ export function PrioritySelect({
 }) {
   const [isPending, startTransition] = useTransition()
 
-  function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const priority = e.target.value as IssuePriority
+  function handleChange(priority: IssuePriority) {
     startTransition(() => {
       updateIssuePriority(issueId, priority, projectId)
     })
   }
 
   return (
-    <select
+    <IssueDetailSelect
       value={current}
-      onChange={handleChange}
+      onChange={(next) => handleChange(next as IssuePriority)}
       disabled={isPending}
-      className={cn(
-        'w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:ring-0 transition-opacity',
-        isPending && 'opacity-50',
-        PRIORITY_COLORS[current],
-      )}
-    >
-      {ALL_PRIORITIES.map((p) => (
-        <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>
-      ))}
-    </select>
+      options={ALL_PRIORITIES.map((priority) => ({
+        value: priority,
+        label: PRIORITY_LABELS[priority],
+        dotClassName: PRIORITY_DOT_COLORS[priority],
+      }))}
+    />
   )
 }

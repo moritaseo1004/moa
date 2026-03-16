@@ -1,195 +1,271 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import {
-  CirclePlus,
+  CalendarDays,
   FolderKanban,
-  Grid3X3,
   House,
-  LogOut,
-  Search,
-  Settings,
+  Inbox,
+  PanelLeft,
+  Users,
 } from 'lucide-react'
-import { signOut } from '@/lib/actions/auth'
 import { cn } from '@/lib/utils'
+
+const RAIL_MODE_KEY = 'moa:left-rail-mode'
+
+type RailMode = 'expanded' | 'collapsed' | 'hover'
+
+function readStoredRailMode(): RailMode {
+  if (typeof window === 'undefined') return 'hover'
+  const savedMode = window.localStorage.getItem(RAIL_MODE_KEY)
+  if (savedMode === 'expanded' || savedMode === 'collapsed' || savedMode === 'hover') {
+    return savedMode
+  }
+  return 'hover'
+}
 
 function itemClass(active: boolean) {
   return cn(
-    'inline-flex h-9 w-full items-center justify-center rounded-lg px-2 transition-colors group-hover:justify-start',
+    'inline-flex h-9 w-full items-center rounded-md px-2 transition-colors',
     active
-      ? 'bg-muted text-foreground'
-      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+      ? 'bg-[#232323] text-foreground'
+      : 'text-muted-foreground hover:bg-[#202020] hover:text-foreground',
   )
 }
 
-export function LeftRail({ isAuthenticated }: { isAuthenticated: boolean }) {
-  const pathname = usePathname()
-  const [activeProjectContext, setActiveProjectContext] = useState<{
-    pathname: string
-    id: string | null
-    name: string | null
-  }>({ pathname: '', id: null, name: null })
-  const [projectShortcuts, setProjectShortcuts] = useState<
-    Array<{ id: string; name: string; prefix?: string | null }>
-  >([])
+function RailItemLabel({
+  children,
+  isExpanded,
+}: {
+  children: React.ReactNode
+  isExpanded: boolean
+}) {
+  return (
+    <span
+      className={cn(
+        'pointer-events-none absolute left-[calc(100%+0.5rem)] top-1/2 z-50 -translate-y-1/2 rounded-md border border-border bg-[#1f1f1f] px-2.5 py-1 text-xs font-medium text-foreground shadow-xl transition-all duration-150',
+        isExpanded ? 'hidden' : 'invisible translate-x-1 opacity-0 group-hover:visible group-hover:translate-x-0 group-hover:opacity-100',
+      )}
+    >
+      {children}
+    </span>
+  )
+}
 
-  const isDashboard = pathname === '/'
+export function LeftRail({
+  isAdmin,
+}: {
+  isAdmin?: boolean
+}) {
+  const pathname = usePathname()
+  const settingsRef = useRef<HTMLDivElement | null>(null)
+  const [isHovering, setIsHovering] = useState(false)
+  const [showModeMenu, setShowModeMenu] = useState(false)
+  const railMode = useSyncExternalStore(
+    (onStoreChange) => {
+      if (typeof window === 'undefined') return () => {}
+      const handleStorage = (event: Event) => {
+        if (!(event instanceof StorageEvent) || event.key === RAIL_MODE_KEY) {
+          onStoreChange()
+        }
+      }
+      window.addEventListener('storage', handleStorage)
+      window.addEventListener('left-rail-mode-change', handleStorage)
+      return () => {
+        window.removeEventListener('storage', handleStorage)
+        window.removeEventListener('left-rail-mode-change', handleStorage)
+      }
+    },
+    readStoredRailMode,
+    () => 'hover',
+  )
+
+  const isDashboard = pathname.startsWith('/dashboard') || pathname === '/'
+  const isCalendar = pathname.startsWith('/calendar')
+  const isInbox = pathname.startsWith('/inbox')
+  const isUsers = pathname.startsWith('/users')
   const isProjects =
     pathname.startsWith('/projects') ||
     pathname.startsWith('/project/') ||
     pathname.startsWith('/issue/')
-  const isSearch = pathname.startsWith('/search')
+
+  const isExpanded = railMode === 'expanded' || (railMode === 'hover' && isHovering)
+  const railWidthClass = railMode === 'expanded' ? 'w-52' : 'w-14'
 
   useEffect(() => {
-    if (!isAuthenticated) return
-    const ctrl = new AbortController()
-    const load = async () => {
-      try {
-        const res = await fetch(`/api/nav/context?pathname=${encodeURIComponent(pathname)}`, {
-          signal: ctrl.signal,
-        })
-        if (!res.ok) {
-          setActiveProjectContext({ pathname, id: null, name: null })
-          return
-        }
-        const json = (await res.json()) as {
-          activeProject?: { id?: string; name?: string } | null
-          projectShortcuts?: Array<{ id: string; name: string; prefix?: string | null }>
-        }
-        setActiveProjectContext({
-          pathname,
-          id: json.activeProject?.id ?? null,
-          name: json.activeProject?.name ?? null,
-        })
-        setProjectShortcuts(json.projectShortcuts ?? [])
-      } catch (error) {
-        if (
-          !(error instanceof DOMException && error.name === 'AbortError') &&
-          !(typeof error === 'object' && error !== null && 'name' in error && error.name === 'AbortError')
-        ) {
-          console.error('[LeftRail] nav context fetch failed', error)
-        }
+    if (typeof window === 'undefined') return
+    document.documentElement.style.setProperty(
+      '--left-rail-offset',
+      railMode === 'expanded' ? '13rem' : '3.5rem',
+    )
+  }, [railMode])
+
+  useEffect(() => {
+    const onPointerDown = (event: MouseEvent) => {
+      if (!settingsRef.current?.contains(event.target as Node)) {
+        setShowModeMenu(false)
       }
     }
-    void load()
 
-    return () => ctrl.abort()
-  }, [pathname, isAuthenticated])
+    window.addEventListener('mousedown', onPointerDown)
+    return () => window.removeEventListener('mousedown', onPointerDown)
+  }, [])
 
-  const activeProjectName =
-    activeProjectContext.pathname === pathname ? activeProjectContext.name : null
-  const activeProjectId =
-    activeProjectContext.pathname === pathname ? activeProjectContext.id : null
+  const selectMode = (mode: RailMode) => {
+    window.localStorage.setItem(RAIL_MODE_KEY, mode)
+    window.dispatchEvent(new Event('left-rail-mode-change'))
+    setShowModeMenu(false)
+    if (mode !== 'hover') {
+      setIsHovering(false)
+    }
+  }
 
-  const projectsLabel = useMemo(() => {
-    if (!isProjects || !activeProjectName) return 'Projects'
-    return `Projects · ${activeProjectName}`
-  }, [isProjects, activeProjectName])
+  const labelClass =
+    'overflow-hidden whitespace-nowrap text-sm transition-all duration-150'
+  const textClass = cn(
+    labelClass,
+    isExpanded ? 'ml-2 w-auto opacity-100' : 'w-0 opacity-0',
+  )
+  const iconSlotClass = cn(
+    'flex items-center justify-center transition-all duration-150',
+    isExpanded ? 'w-auto' : 'w-full',
+  )
+  const showCollapsedTooltip = railMode === 'collapsed'
 
   return (
-    <aside className="group fixed inset-y-0 left-0 z-40 w-14 overflow-hidden border-r border-[#30363d] bg-[#010409] pt-2 transition-[width] duration-200 hover:w-52">
-      <div className="flex h-full flex-col items-stretch px-2">
-        <Link
-          href="/projects"
-          className="mb-3 inline-flex h-9 w-full items-center justify-center rounded-lg border border-border bg-background px-2 transition-colors hover:bg-muted group-hover:justify-start"
-          title="MoA"
-        >
-          <Image
-            src="/brand/logo-mark.svg"
-            alt="MoA"
-            width={20}
-            height={20}
-            className="h-5 w-5"
-            priority
-          />
-          <span className="ml-2 w-0 overflow-hidden whitespace-nowrap text-sm font-medium opacity-0 transition-all duration-150 group-hover:w-auto group-hover:opacity-100">
-            MoA
-          </span>
-        </Link>
-
-        <nav className="flex w-full flex-1 flex-col gap-1.5">
-          <Link href="/projects" className={itemClass(isDashboard)} title="Dashboard">
-            <House className="h-4 w-4" />
-            <span className="ml-2 w-0 overflow-hidden whitespace-nowrap text-sm opacity-0 transition-all duration-150 group-hover:w-auto group-hover:opacity-100">
+    <aside
+      className={cn(
+        'fixed bottom-0 left-0 top-14 z-40 overflow-visible transition-[width] duration-200',
+        railWidthClass,
+      )}
+      onMouseEnter={() => {
+        if (railMode === 'hover') setIsHovering(true)
+      }}
+      onMouseLeave={() => {
+        if (railMode === 'hover') setIsHovering(false)
+      }}
+    >
+      <div
+        className={cn(
+          'relative flex h-full flex-col items-stretch border-r border-[#30363d] bg-[#010409] px-2 transition-[width,box-shadow] duration-200',
+          'border-r border-border bg-[#181818]',
+          isExpanded
+            ? 'w-52 shadow-[10px_0_30px_rgba(0,0,0,0.22)]'
+            : 'w-14',
+        )}
+      >
+        <nav className="flex w-full flex-1 flex-col gap-1.5 pt-2">
+          <Link href="/dashboard" className={cn('group relative', itemClass(isDashboard))} title="Dashboard">
+            <span className={iconSlotClass}>
+              <House className="h-4 w-4" />
+            </span>
+            <span className={textClass}>
               Dashboard
             </span>
+            {showCollapsedTooltip ? <RailItemLabel isExpanded={isExpanded}>Dashboard</RailItemLabel> : null}
           </Link>
 
-          <Link href="/projects" className={itemClass(isProjects)} title="Projects">
-            <FolderKanban className="h-4 w-4" />
-            <span className="ml-2 w-0 overflow-hidden whitespace-nowrap text-sm opacity-0 transition-all duration-150 group-hover:w-auto group-hover:opacity-100">
-              {projectsLabel}
+          <Link href="/calendar" className={cn('group relative', itemClass(isCalendar))} title="Calendar">
+            <span className={iconSlotClass}>
+              <CalendarDays className="h-4 w-4" />
             </span>
-          </Link>
-          <div className="ml-6 -mt-0.5 hidden space-y-0.5 group-hover:block">
-            {projectShortcuts.map((project) => {
-              const active =
-                pathname.startsWith(`/project/${project.id}`) ||
-                activeProjectId === project.id
-              return (
-                <Link
-                  key={project.id}
-                  href={`/project/${project.id}`}
-                  className={cn(
-                    'block rounded-md px-2 py-1 text-xs transition-colors',
-                    active
-                      ? 'bg-muted text-foreground'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                  )}
-                  title={project.name}
-                >
-                  <span className="truncate block">
-                    {project.prefix ? `${project.prefix} · ` : ''}
-                    {project.name}
-                  </span>
-                </Link>
-              )
-            })}
-          </div>
-
-          <Link href="/search" className={itemClass(isSearch)} title="Search">
-            <Search className="h-4 w-4" />
-            <span className="ml-2 w-0 overflow-hidden whitespace-nowrap text-sm opacity-0 transition-all duration-150 group-hover:w-auto group-hover:opacity-100">
-              Search
+            <span className={textClass}>
+              Calendar
             </span>
+            {showCollapsedTooltip ? <RailItemLabel isExpanded={isExpanded}>Calendar</RailItemLabel> : null}
           </Link>
 
-          <button type="button" className={itemClass(false)} title="Create issue (Ctrl+N)">
-            <CirclePlus className="h-4 w-4" />
-            <span className="ml-2 w-0 overflow-hidden whitespace-nowrap text-sm opacity-0 transition-all duration-150 group-hover:w-auto group-hover:opacity-100">
-              New issue
+          <Link href="/inbox" className={cn('group relative', itemClass(isInbox))} title="Inbox">
+            <span className={iconSlotClass}>
+              <Inbox className="h-4 w-4" />
             </span>
-          </button>
+            <span className={textClass}>
+              Inbox
+            </span>
+            {showCollapsedTooltip ? <RailItemLabel isExpanded={isExpanded}>Inbox</RailItemLabel> : null}
+          </Link>
 
-          <button type="button" className={itemClass(false)} title="Apps">
-            <Grid3X3 className="h-4 w-4" />
-            <span className="ml-2 w-0 overflow-hidden whitespace-nowrap text-sm opacity-0 transition-all duration-150 group-hover:w-auto group-hover:opacity-100">
-              Apps
+          <Link href="/projects" className={cn('group relative', itemClass(isProjects))} title="Project">
+            <span className={iconSlotClass}>
+              <FolderKanban className="h-4 w-4" />
             </span>
-          </button>
+            <span className={textClass}>
+              Project
+            </span>
+            {showCollapsedTooltip ? <RailItemLabel isExpanded={isExpanded}>Project</RailItemLabel> : null}
+          </Link>
+          {isAdmin && (
+            <Link href="/users" className={cn('group relative', itemClass(isUsers))} title="Users">
+              <span className={iconSlotClass}>
+                <Users className="h-4 w-4" />
+              </span>
+              <span className={textClass}>
+                Users
+              </span>
+              {showCollapsedTooltip ? <RailItemLabel isExpanded={isExpanded}>Users</RailItemLabel> : null}
+            </Link>
+          )}
         </nav>
 
         <div className="mb-3 flex flex-col gap-1.5">
-          <button type="button" className={itemClass(false)} title="Settings">
-            <Settings className="h-4 w-4" />
-            <span className="ml-2 w-0 overflow-hidden whitespace-nowrap text-sm opacity-0 transition-all duration-150 group-hover:w-auto group-hover:opacity-100">
-              Settings
-            </span>
-          </button>
+          <div ref={settingsRef} className="relative">
+            <button
+              type="button"
+              className={cn('group relative', itemClass(showModeMenu))}
+              title="Rail mode"
+              aria-haspopup="menu"
+              aria-expanded={showModeMenu}
+              onClick={() => setShowModeMenu((current) => !current)}
+            >
+              <span className={iconSlotClass}>
+                <PanelLeft className="h-4 w-4" />
+              </span>
+              <span className={textClass}>
+                {railMode === 'expanded'
+                  ? 'Expanded'
+                  : railMode === 'collapsed'
+                    ? 'Collapsed'
+                    : 'Expand on hover'}
+              </span>
+              {showCollapsedTooltip ? <RailItemLabel isExpanded={isExpanded}>Rail mode</RailItemLabel> : null}
+            </button>
 
-          {isAuthenticated && (
-            <form action={signOut}>
-              <button type="submit" className={itemClass(false)} title="Sign out">
-                <LogOut className="h-4 w-4" />
-                <span className="ml-2 w-0 overflow-hidden whitespace-nowrap text-sm opacity-0 transition-all duration-150 group-hover:w-auto group-hover:opacity-100">
-                  Sign out
-                </span>
-              </button>
-            </form>
-          )}
+            {showModeMenu && (
+              <div
+                className={cn(
+                  'absolute bottom-11 left-0 min-w-[220px] rounded-lg border border-border bg-[#1f1f1f] p-2 shadow-2xl',
+                  isExpanded ? 'right-0' : 'left-12',
+                )}
+              >
+                <p className="px-2 pb-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  Rail mode
+                </p>
+                <div className="space-y-1">
+                  {([
+                    ['expanded', 'Expanded'],
+                    ['collapsed', 'Collapsed'],
+                    ['hover', 'Expand on hover'],
+                  ] as const).map(([mode, label]) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => selectMode(mode)}
+                      className={cn(
+                        'w-full rounded-md px-3 py-2 text-left transition-colors',
+                        railMode === mode
+                          ? 'bg-[#232323] text-foreground'
+                          : 'text-muted-foreground hover:bg-[#202020] hover:text-foreground',
+                      )}
+                    >
+                      <span className="block text-sm font-medium">{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </aside>

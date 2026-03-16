@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { isInboxProject } from '@/lib/project-utils'
 
 function parseId(pathname: string, base: '/project/' | '/issue/'): string | null {
   if (!pathname.startsWith(base)) return null
@@ -27,6 +28,7 @@ export async function GET(req: NextRequest) {
     .select('id, name, prefix')
     .order('name')
     .limit(10)
+  const visibleShortcuts = (shortcuts ?? []).filter((project) => !isInboxProject(project))
 
   const projectIdFromProjectPath = parseId(pathname, '/project/')
   if (projectIdFromProjectPath) {
@@ -35,7 +37,7 @@ export async function GET(req: NextRequest) {
       .select('id, name')
       .eq('id', projectIdFromProjectPath)
       .single()
-    return NextResponse.json({ activeProject: data ?? null, projectShortcuts: shortcuts ?? [] })
+    return NextResponse.json({ activeProject: data ?? null, projectShortcuts: visibleShortcuts })
   }
 
   const issueId = parseId(pathname, '/issue/')
@@ -47,7 +49,7 @@ export async function GET(req: NextRequest) {
       .single()
 
     if (!issue?.project_id) {
-      return NextResponse.json({ activeProject: null, projectShortcuts: shortcuts ?? [] })
+      return NextResponse.json({ activeProject: null, projectShortcuts: visibleShortcuts })
     }
 
     const { data: project } = await admin
@@ -56,8 +58,8 @@ export async function GET(req: NextRequest) {
       .eq('id', issue.project_id)
       .single()
 
-    return NextResponse.json({ activeProject: project ?? null, projectShortcuts: shortcuts ?? [] })
+    return NextResponse.json({ activeProject: project ?? null, projectShortcuts: visibleShortcuts })
   }
 
-  return NextResponse.json({ activeProject: null, projectShortcuts: shortcuts ?? [] })
+  return NextResponse.json({ activeProject: null, projectShortcuts: visibleShortcuts })
 }

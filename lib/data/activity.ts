@@ -1,5 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { ActivityLog } from '@/lib/types'
+import type { ActivityLogWithUser } from '@/lib/types'
 
 export async function logActivity({
   user_id = null,
@@ -27,11 +27,11 @@ export async function logActivity({
 export async function getActivityByEntity(
   entity_type: string,
   entity_id: string,
-): Promise<ActivityLog[]> {
+): Promise<ActivityLogWithUser[]> {
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('activity_logs')
-    .select('*')
+    .select('*, user:users(*)')
     .eq('entity_type', entity_type)
     .eq('entity_id', entity_id)
     .order('created_at', { ascending: false })

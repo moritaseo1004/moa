@@ -1,8 +1,9 @@
 'use client'
 
 import { useTransition } from 'react'
+import { IssueDetailSelect } from './issue-detail-select'
 import { updateIssueStatus } from '@/lib/actions/issues'
-import { STATUS_LABELS, ALL_STATUSES } from '@/lib/status'
+import { STATUS_LABELS, ALL_STATUSES, STATUS_COLORS } from '@/lib/status'
 import type { IssueStatus } from '@/lib/types'
 
 export function StatusSelect({
@@ -17,19 +18,19 @@ export function StatusSelect({
   const [isPending, startTransition] = useTransition()
 
   return (
-    <select
+    <IssueDetailSelect
       value={current}
       disabled={isPending}
-      onChange={(e) => {
+      onChange={(next) => {
         startTransition(() => {
-          updateIssueStatus(issueId, e.target.value as IssueStatus, projectId)
+          updateIssueStatus(issueId, next as IssueStatus, projectId)
         })
       }}
-      className="rounded-lg border border-border bg-background px-2 py-1 text-sm outline-none focus:ring-0 disabled:opacity-50"
-    >
-      {ALL_STATUSES.map((s) => (
-        <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-      ))}
-    </select>
+      options={ALL_STATUSES.map((status) => ({
+        value: status,
+        label: STATUS_LABELS[status],
+        badgeClassName: STATUS_COLORS[status],
+      }))}
+    />
   )
 }

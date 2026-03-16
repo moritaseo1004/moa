@@ -1,6 +1,7 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
+import { IssueDetailSelect } from './issue-detail-select'
 import { moveIssueToProject } from '@/lib/actions/issues'
 import type { Project } from '@/lib/types'
 
@@ -13,22 +14,24 @@ export function ProjectSelect({
   current: string
   projects: Project[]
 }) {
+  const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   return (
-    <select
-      value={current}
-      disabled={isPending}
-      onChange={(e) => {
-        startTransition(() => {
-          moveIssueToProject(issueId, e.target.value, current)
-        })
-      }}
-      className="rounded-lg border border-border bg-background px-2 py-1 text-sm outline-none focus:ring-0 disabled:opacity-50"
-    >
-      {projects.map((p) => (
-        <option key={p.id} value={p.id}>{p.name}</option>
-      ))}
-    </select>
+    <div className="space-y-2">
+      <IssueDetailSelect
+        value={current}
+        disabled={isPending}
+        onChange={(next) => {
+          setError(null)
+          startTransition(async () => {
+            const result = await moveIssueToProject(issueId, next, current)
+            if (result?.error) setError(result.error)
+          })
+        }}
+        options={projects.map((project) => ({ value: project.id, label: project.name }))}
+      />
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
   )
 }

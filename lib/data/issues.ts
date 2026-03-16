@@ -1,6 +1,12 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { IssueWithRelations } from '@/lib/types'
 
+export interface IssueSequenceItem {
+  id: string
+  issue_number: number
+  title: string
+}
+
 export async function getIssuesByProject(projectId: string): Promise<IssueWithRelations[]> {
   const supabase = createAdminClient()
   const { data, error } = await supabase
@@ -34,6 +40,22 @@ export async function getIssue(id: string): Promise<IssueWithRelations | null> {
     .single()
   if (error) return null
   return data
+}
+
+export async function getIssueSequence(projectId: string): Promise<IssueSequenceItem[]> {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('issues')
+    .select('id, issue_number, title')
+    .eq('project_id', projectId)
+    .order('issue_number', { ascending: true })
+
+  if (error) {
+    console.error('[getIssueSequence] failed:', error)
+    return []
+  }
+
+  return data ?? []
 }
 
 export async function getDueIssuesForDashboard(userId: string): Promise<IssueWithRelations[]> {

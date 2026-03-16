@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
+import { isMasterEmail } from '@/lib/auth-policy'
 
 export async function middleware(request: NextRequest) {
   // Pass-through for Slack webhooks — no session needed
@@ -30,6 +31,7 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   const isLoginPage = request.nextUrl.pathname === '/login'
+  const isPendingApprovalPage = request.nextUrl.pathname === '/pending-approval'
 
   // Not logged in → redirect to login
   if (!user && !isLoginPage) {
@@ -38,10 +40,38 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
+  if (user) {
+    const { data: profile } = await supabase
+      .from('users')
+      .select('is_approved')
+      .eq('id', user.id)
+      .single()
+
+    const approved = isMasterEmail(user.email) || Boolean(profile?.is_approved)
+
+    if (!approved && !isPendingApprovalPage) {
+      const pendingUrl = request.nextUrl.clone()
+      pendingUrl.pathname = '/pending-approval'
+      return NextResponse.redirect(pendingUrl)
+    }
+
+    if (approved && isPendingApprovalPage) {
+      const homeUrl = request.nextUrl.clone()
+      homeUrl.pathname = '/dashboard'
+      return NextResponse.redirect(homeUrl)
+    }
+  }
+
   // Already logged in → skip login page
   if (user && isLoginPage) {
+    const { data: profile } = await supabase
+      .from('users')
+      .select('is_approved')
+      .eq('id', user.id)
+      .single()
+    const approved = isMasterEmail(user.email) || Boolean(profile?.is_approved)
     const homeUrl = request.nextUrl.clone()
-    homeUrl.pathname = '/projects'
+    homeUrl.pathname = approved ? '/dashboard' : '/pending-approval'
     return NextResponse.redirect(homeUrl)
   }
 
@@ -49,5 +79,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)'],
 }
