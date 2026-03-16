@@ -34,7 +34,8 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
           <div className="grid gap-4 sm:grid-cols-2">
             <DetailRow label="Name" value={user.name} />
             <DetailRow label="Email" value={user.email} />
-            <DetailRow label="Provider" value={user.auth_provider} />
+            <DetailRow label="First provider" value={user.first_auth_provider} />
+            <DetailRow label="Last sign-in provider" value={user.last_sign_in_provider} />
             <DetailRow label="Slack" value={user.slack_user_id ? 'Linked' : 'Not linked'} />
             <DetailRow label="Approved" value={user.is_approved ? 'Approved' : 'Pending'} />
             <DetailRow label="Role" value={user.role} />
@@ -71,7 +72,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
           </form>
 
           <p className="text-xs text-muted-foreground">
-            Signed in as {admin.name}. Approval gating for the whole app is intentionally not enforced yet so current testing access stays open.
+            Signed in as {admin.name}. Approval and role updates take effect on the user&apos;s next request.
           </p>
         </section>
       </div>

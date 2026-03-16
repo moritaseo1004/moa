@@ -2,8 +2,8 @@
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { isMasterEmail } from '@/lib/auth-policy'
+import { syncUserProfileFromAuth } from '@/lib/auth-profile'
 
 type State = { error?: string; info?: string } | null
 
@@ -19,34 +19,15 @@ export async function signIn(prevState: State, formData: FormData): Promise<Stat
   const user = data.user
   if (!user) return { error: 'Sign in failed. Try again.' }
 
-  const admin = createAdminClient()
-  const { data: existingProfile } = await admin
-    .from('users')
-    .select('role, is_approved, approved_at, approved_by, created_at')
-    .eq('id', user.id)
-    .single()
-
-  const master = isMasterEmail(user.email ?? email)
-  const { error: profileError } = await admin
-    .from('users')
-    .upsert(
-      {
-        id: user.id,
-        email: user.email ?? email,
-        name: (user.user_metadata?.name as string | undefined)?.trim() || user.email || email,
-        role: existingProfile?.role ?? (master ? 'admin' : 'member'),
-        is_approved: existingProfile?.is_approved ?? master,
-        approved_at: existingProfile?.approved_at ?? (master ? new Date().toISOString() : null),
-        approved_by: existingProfile?.approved_by ?? null,
-        auth_provider: 'email',
-        last_sign_in_at: new Date().toISOString(),
-        created_at: existingProfile?.created_at ?? new Date().toISOString(),
-      },
-      { onConflict: 'id' },
-    )
+  const { error: profileError } = await syncUserProfileFromAuth({
+    userId: user.id,
+    email: user.email ?? email,
+    name: (user.user_metadata?.name as string | undefined) ?? user.email ?? email,
+    provider: 'email',
+  })
 
   if (profileError) {
-    return { error: `Failed to sync user profile: ${profileError.message}` }
+    return { error: `Failed to sync user profile: ${profileError}` }
   }
 
   redirect('/dashboard')
@@ -70,24 +51,15 @@ export async function signUp(prevState: State, formData: FormData): Promise<Stat
   if (!data.user) return { error: 'Sign up failed. Try again.' }
 
   // Upsert profile into public.users (admin client to bypass RLS)
-  const { error: profileError } = await createAdminClient()
-    .from('users')
-    .upsert(
-      {
-        id: data.user.id,
-        email,
-        name,
-        role: 'member',
-        is_approved: isMasterEmail(email),
-        approved_at: isMasterEmail(email) ? new Date().toISOString() : null,
-        auth_provider: 'email',
-        last_sign_in_at: new Date().toISOString(),
-      },
-      { onConflict: 'id' },
-    )
+  const { error: profileError } = await syncUserProfileFromAuth({
+    userId: data.user.id,
+    email,
+    name,
+    provider: 'email',
+  })
 
   if (profileError) {
-    return { error: `Failed to create user profile: ${profileError.message}` }
+    return { error: `Failed to create user profile: ${profileError}` }
   }
 
   // No session = email confirmation required

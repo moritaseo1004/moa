@@ -6,6 +6,8 @@ export type IssueSource = 'slack' | 'manual' | 'system'
 
 export type IssuePriority = 'urgent' | 'high' | 'medium' | 'low'
 
+export type AuthProvider = 'email' | 'google'
+
 // ─── Entities ─────────────────────────────────────────────────────────────────
 
 export interface User {
@@ -17,7 +19,8 @@ export interface User {
   is_approved: boolean
   approved_at: string | null
   approved_by: string | null
-  auth_provider: string
+  first_auth_provider: AuthProvider
+  last_sign_in_provider: AuthProvider
   last_sign_in_at: string | null
   created_at: string
 }

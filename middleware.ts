@@ -32,9 +32,10 @@ export async function middleware(request: NextRequest) {
 
   const isLoginPage = request.nextUrl.pathname === '/login'
   const isPendingApprovalPage = request.nextUrl.pathname === '/pending-approval'
+  const isAuthCallbackPage = request.nextUrl.pathname === '/auth/callback'
 
   // Not logged in → redirect to login
-  if (!user && !isLoginPage) {
+  if (!user && !isLoginPage && !isAuthCallbackPage) {
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = '/login'
     return NextResponse.redirect(loginUrl)

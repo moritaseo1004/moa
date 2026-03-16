@@ -30,7 +30,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const userLabel = profile?.name ?? user?.user_metadata?.name ?? user?.email ?? 'Workspace'
   const userEmail = profile?.email ?? user?.email ?? null
   const roleLabel = formatRoleLabel(profile?.role)
-  const showShell = !user || Boolean(profile?.is_approved)
+  const showShell = Boolean(user && profile?.is_approved)
 
   return (
     <html lang="en" className="dark">

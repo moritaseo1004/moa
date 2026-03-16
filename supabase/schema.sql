@@ -21,6 +21,8 @@ create table public.users (
   approved_at   timestamptz,
   approved_by   uuid        references public.users(id) on delete set null,
   auth_provider text        not null default 'email',
+  first_auth_provider text  not null default 'email',
+  last_sign_in_provider text not null default 'email',
   last_sign_in_at timestamptz,
   created_at    timestamptz not null default now()
 );

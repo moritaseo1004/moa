@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { isMasterEmail } from '@/lib/auth-policy'
+import { getStoredAuthProfile } from '@/lib/auth-profile'
 import type { User } from '@/lib/types'
 
 function applyMasterOverride(profile: User | null, authUser: { id: string; email?: string | null; user_metadata?: { name?: string | null } } | null): User | null {
@@ -16,7 +16,8 @@ function applyMasterOverride(profile: User | null, authUser: { id: string; email
       role: 'admin',
       is_approved: true,
       approved_at: profile.approved_at ?? new Date().toISOString(),
-      auth_provider: profile.auth_provider || 'email',
+      first_auth_provider: profile.first_auth_provider || 'email',
+      last_sign_in_provider: profile.last_sign_in_provider || profile.first_auth_provider || 'email',
     }
   }
 
@@ -29,7 +30,8 @@ function applyMasterOverride(profile: User | null, authUser: { id: string; email
     is_approved: true,
     approved_at: new Date().toISOString(),
     approved_by: null,
-    auth_provider: 'email',
+    first_auth_provider: 'email',
+    last_sign_in_provider: 'email',
     last_sign_in_at: null,
     created_at: new Date().toISOString(),
   }
@@ -43,14 +45,8 @@ export async function getCurrentUserProfile(): Promise<User | null> {
 
   if (!user) return null
 
-  const admin = createAdminClient()
-  const { data } = await admin
-    .from('users')
-    .select('*')
-    .eq('id', user.id)
-    .single()
-
-  return applyMasterOverride(data ?? null, user)
+  const profile = await getStoredAuthProfile(user.id)
+  return applyMasterOverride(profile ?? null, user)
 }
 
 export async function requireAdminUser(): Promise<User> {
