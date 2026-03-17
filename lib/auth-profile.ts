@@ -93,9 +93,11 @@ export async function syncUserProfileFromAuth({
       return { error: error.message }
     }
   } else {
+    const internalUserIdToCreate = crypto.randomUUID()
     const { data, error } = await admin
       .from('users')
       .insert({
+        id: internalUserIdToCreate,
         auth_user_id: authUserId,
         email: normalizedEmail,
         name: trimmedName || normalizedEmail,
@@ -115,7 +117,7 @@ export async function syncUserProfileFromAuth({
       return { error: error?.message ?? 'Failed to create user profile.' }
     }
 
-    internalUserId = data.id
+    internalUserId = data.id ?? internalUserIdToCreate
   }
 
   if (!internalUserId) {

@@ -1,9 +1,11 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { getInboxProject } from '@/lib/data/projects'
 import { getIssuesByProject } from '@/lib/data/issues'
 import { getUsers } from '@/lib/data/users'
 import { KanbanBoard } from '@/app/project/[id]/_components/kanban-board'
 import { IssueDetailSheet } from '@/app/project/[id]/_components/issue-detail-sheet'
+import { IssueDetailSheetSkeleton } from '@/app/project/[id]/_components/issue-detail-sheet-skeleton'
 
 export const metadata = { title: 'Inbox — Tracker' }
 
@@ -57,7 +59,9 @@ export default async function InboxPage({
       </div>
 
       {selectedIssueId ? (
-        <IssueDetailSheet issueId={selectedIssueId} projectId={project.id} basePath="/inbox" />
+        <Suspense key={selectedIssueId} fallback={<IssueDetailSheetSkeleton />}>
+          <IssueDetailSheet issueId={selectedIssueId} projectId={project.id} basePath="/inbox" />
+        </Suspense>
       ) : null}
     </div>
   )

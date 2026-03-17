@@ -26,6 +26,7 @@ type SortMode = 'latest' | 'oldest' | 'due_soon'
 export type IssueOpenMode = 'panel' | 'page'
 
 const ISSUE_OPEN_MODE_KEY = 'tracker-issue-open-mode'
+const ISSUE_VIEW_MODE_KEY = 'tracker-issue-view-mode'
 
 const SORT_MODE_LABELS: Record<SortMode, string> = {
   latest: 'Latest',
@@ -65,11 +66,20 @@ export function KanbanBoard({
     if (stored === 'panel' || stored === 'page') {
       setOpenMode(stored)
     }
+    const storedViewMode = window.localStorage.getItem(ISSUE_VIEW_MODE_KEY)
+    if (storedViewMode === 'kanban' || storedViewMode === 'table') {
+      setViewMode(storedViewMode)
+    }
   }, [])
 
   function handleOpenModeChange(nextMode: IssueOpenMode) {
     setOpenMode(nextMode)
     window.localStorage.setItem(ISSUE_OPEN_MODE_KEY, nextMode)
+  }
+
+  function handleViewModeChange(nextMode: ViewMode) {
+    setViewMode(nextMode)
+    window.localStorage.setItem(ISSUE_VIEW_MODE_KEY, nextMode)
   }
 
   useEffect(() => {
@@ -254,14 +264,14 @@ export function KanbanBoard({
         </div>
         <div className="flex items-center gap-1 rounded-md border border-border bg-[#202020] p-0.5">
           <button
-            onClick={() => setViewMode('kanban')}
+            onClick={() => handleViewModeChange('kanban')}
             className={`rounded-sm p-1.5 transition-colors ${viewMode === 'kanban' ? 'bg-[#2a2a2a] text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
             title="Kanban view"
           >
             <LayoutGrid className="h-3.5 w-3.5" />
           </button>
           <button
-            onClick={() => setViewMode('table')}
+            onClick={() => handleViewModeChange('table')}
             className={`rounded-sm p-1.5 transition-colors ${viewMode === 'table' ? 'bg-[#2a2a2a] text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
             title="Table view"
           >

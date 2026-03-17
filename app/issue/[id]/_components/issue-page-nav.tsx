@@ -8,10 +8,12 @@ export function IssuePageNav({
   projectHref,
   previousIssue,
   nextIssue,
+  returnTo,
 }: {
   projectHref: string
   previousIssue: { id: string; label: string } | null
   nextIssue: { id: string; label: string } | null
+  returnTo?: string
 }) {
   const router = useRouter()
 
@@ -29,7 +31,7 @@ export function IssuePageNav({
       <div className="flex items-center gap-2">
         {previousIssue ? (
           <Link
-            href={`/issue/${previousIssue.id}`}
+            href={`/issue/${previousIssue.id}${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`}
             className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-[#1f1f1f] px-3 text-sm text-muted-foreground transition-colors hover:bg-[#232323] hover:text-foreground"
             title={previousIssue.label}
           >
@@ -40,7 +42,7 @@ export function IssuePageNav({
 
         {nextIssue ? (
           <Link
-            href={`/issue/${nextIssue.id}`}
+            href={`/issue/${nextIssue.id}${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`}
             className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-[#1f1f1f] px-3 text-sm text-muted-foreground transition-colors hover:bg-[#232323] hover:text-foreground"
             title={nextIssue.label}
           >
@@ -51,7 +53,7 @@ export function IssuePageNav({
 
         {!previousIssue && !nextIssue ? (
           <Link
-            href={projectHref}
+            href={returnTo ?? projectHref}
             className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-[#1f1f1f] px-3 text-sm text-muted-foreground transition-colors hover:bg-[#232323] hover:text-foreground"
           >
             Back to project

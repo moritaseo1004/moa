@@ -1,11 +1,13 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { Suspense } from 'react'
 import { getProject } from '@/lib/data/projects'
 import { getIssuesByProject } from '@/lib/data/issues'
 import { getUsers } from '@/lib/data/users'
 import { KanbanBoard } from './_components/kanban-board'
 import { CreateIssueModal } from './_components/create-issue-modal'
 import { IssueDetailSheet } from './_components/issue-detail-sheet'
+import { IssueDetailSheetSkeleton } from './_components/issue-detail-sheet-skeleton'
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -53,7 +55,9 @@ export default async function ProjectPage({
       </div>
 
       {selectedIssueId ? (
-        <IssueDetailSheet issueId={selectedIssueId} projectId={project.id} />
+        <Suspense key={selectedIssueId} fallback={<IssueDetailSheetSkeleton />}>
+          <IssueDetailSheet issueId={selectedIssueId} projectId={project.id} />
+        </Suspense>
       ) : null}
     </div>
   )

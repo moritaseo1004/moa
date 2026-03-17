@@ -72,7 +72,9 @@ export function IssueCard({
   const nextParams = new URLSearchParams(searchParams.toString())
   nextParams.set('issue', issue.id)
   const panelHref = `${pathname}?${nextParams.toString()}`
-  const pageHref = `/issue/${issue.id}`
+  const pageParams = new URLSearchParams()
+  pageParams.set('returnTo', pathname)
+  const pageHref = `/issue/${issue.id}?${pageParams.toString()}`
   const href = openMode === 'page' ? pageHref : panelHref
 
   return (

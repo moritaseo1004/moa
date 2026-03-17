@@ -72,7 +72,9 @@ export function TableView({
                     const next = new URLSearchParams(searchParams.toString())
                     next.set('issue', issue.id)
                     const panelHref = `${pathname}?${next.toString()}`
-                    const pageHref = `/issue/${issue.id}`
+                    const pageParams = new URLSearchParams()
+                    pageParams.set('returnTo', pathname)
+                    const pageHref = `/issue/${issue.id}?${pageParams.toString()}`
                     return openMode === 'page' ? pageHref : panelHref
                   })()}`}
                   className="font-medium hover:underline line-clamp-1"

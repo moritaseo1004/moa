@@ -11,10 +11,12 @@ export function DeleteIssueButton({
   issueId,
   projectId,
   label,
+  returnHref,
 }: {
   issueId: string
   projectId: string
   label?: string
+  returnHref?: string
 }) {
   const [confirm, setConfirm] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -23,7 +25,7 @@ export function DeleteIssueButton({
   function handleDelete() {
     startTransition(async () => {
       await deleteIssue(issueId, projectId)
-      router.push(`/project/${projectId}`)
+      router.push(returnHref ?? `/project/${projectId}`)
     })
   }
 
