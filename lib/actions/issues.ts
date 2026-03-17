@@ -356,12 +356,24 @@ export async function moveIssueToProject(
 ): Promise<{ error?: string }> {
   const actorId = await getAuthenticatedUserId()
   if (!actorId) return { error: 'Unauthorized' }
+  if (newProjectId === currentProjectId) return {}
 
   const supabase = createAdminClient()
 
+  const { data: targetProjectIssues, error: sequenceError } = await supabase
+    .from('issues')
+    .select('issue_number')
+    .eq('project_id', newProjectId)
+    .order('issue_number', { ascending: false })
+    .limit(1)
+
+  if (sequenceError) return { error: sequenceError.message }
+
+  const nextIssueNumber = (targetProjectIssues?.[0]?.issue_number ?? 0) + 1
+
   const { error } = await supabase
     .from('issues')
-    .update({ project_id: newProjectId })
+    .update({ project_id: newProjectId, issue_number: nextIssueNumber })
     .eq('id', issueId)
 
   if (error) return { error: error.message }

@@ -28,13 +28,7 @@ export default async function CalendarPage() {
         </div>
       </div>
 
-      {issues.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border px-6 py-12 text-center text-sm text-muted-foreground">
-          등록된 일정이 없습니다.
-        </div>
-      ) : (
-        <CalendarView issues={issues} today={today} />
-      )}
+      <CalendarView issues={issues} today={today} />
     </div>
   )
 }
