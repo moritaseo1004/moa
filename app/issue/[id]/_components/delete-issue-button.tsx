@@ -10,9 +10,11 @@ import { InlineSpinner } from '@/components/ui/inline-spinner'
 export function DeleteIssueButton({
   issueId,
   projectId,
+  label,
 }: {
   issueId: string
   projectId: string
+  label?: string
 }) {
   const [confirm, setConfirm] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -58,6 +60,7 @@ export function DeleteIssueButton({
       className="text-muted-foreground hover:text-destructive"
     >
       <Trash2 className="h-4 w-4" />
+      {label ? <span>{label}</span> : null}
     </Button>
   )
 }

@@ -221,7 +221,9 @@ export default async function IssuePage({ params }: { params: Promise<{ id: stri
                 <Trash2 className="h-3.5 w-3.5 text-destructive" />
                 <span>완전히 제거할 때만 사용</span>
               </div>
-              <DeleteIssueButton issueId={issue.id} projectId={issue.project_id} />
+              <div className="flex items-center">
+                <DeleteIssueButton issueId={issue.id} projectId={issue.project_id} label="Delete issue" />
+              </div>
             </div>
           </div>
 
