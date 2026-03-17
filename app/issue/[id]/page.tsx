@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { Trash2 } from 'lucide-react'
 import { getIssue, getIssueSequence } from '@/lib/data/issues'
 import { getProjects } from '@/lib/data/projects'
 import { getUsers } from '@/lib/data/users'
@@ -104,7 +105,12 @@ export default async function IssuePage({ params }: { params: Promise<{ id: stri
 
         <div className="flex items-center gap-2">
           <CopyIssueLinkButton issueId={issue.id} />
-          <CompleteButton issueId={issue.id} projectId={issue.project_id} isDone={isDone} />
+          <CompleteButton
+            issueId={issue.id}
+            projectId={issue.project_id}
+            isDone={isDone}
+            showShortcut={false}
+          />
         </div>
       </div>
 
@@ -211,13 +217,9 @@ export default async function IssuePage({ params }: { params: Promise<{ id: stri
             </div>
 
             <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 space-y-3">
-              <div className="space-y-1">
-                <h3 className="text-xs font-medium uppercase tracking-wide text-destructive/80">
-                  Danger zone
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  이 작업은 되돌릴 수 없어. 이슈를 완전히 제거할 때만 사용해.
-                </p>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                <span>완전히 제거할 때만 사용</span>
               </div>
               <DeleteIssueButton issueId={issue.id} projectId={issue.project_id} />
             </div>
