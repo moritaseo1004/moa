@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdminUser } from '@/lib/user-admin'
+import { getAuthenticatedProfile } from '@/lib/actions/authz'
 
 type UserRole = 'admin' | 'member'
 type SlackLinkState = { error?: string; success?: string } | null
@@ -119,6 +120,57 @@ export async function updateUserSlackId(
 
   revalidatePath('/users')
   revalidatePath(`/users/${userId}`)
+
+  return {
+    success: slackUserId
+      ? 'Slack 계정이 연결되었습니다.'
+      : 'Slack 계정 연결이 해제되었습니다.',
+  }
+}
+
+export async function updateMySlackId(
+  _prevState: SlackLinkState,
+  formData: FormData,
+): Promise<SlackLinkState> {
+  const profile = await getAuthenticatedProfile()
+  if (!profile) {
+    return { error: 'Unauthorized' }
+  }
+
+  const rawSlackId = String(formData.get('slack_user_id') ?? '').trim()
+  const slackUserId = rawSlackId.toUpperCase() || null
+
+  if (slackUserId && !/^U[A-Z0-9]+$/i.test(slackUserId)) {
+    return { error: 'Slack 사용자 ID 형식이 올바르지 않습니다. 예: U012ABCDEF' }
+  }
+
+  const supabase = createAdminClient()
+
+  if (slackUserId) {
+    const { data: existing } = await supabase
+      .from('users')
+      .select('id, name')
+      .eq('slack_user_id', slackUserId)
+      .neq('id', profile.id)
+      .maybeSingle()
+
+    if (existing) {
+      return { error: `${existing.name} 사용자에게 이미 연결된 Slack ID입니다.` }
+    }
+  }
+
+  const { error } = await supabase
+    .from('users')
+    .update({ slack_user_id: slackUserId })
+    .eq('id', profile.id)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath('/settings')
+  revalidatePath('/users')
+  revalidatePath(`/users/${profile.id}`)
 
   return {
     success: slackUserId

@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useActionState, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
@@ -31,6 +32,7 @@ export function AuthForm() {
   const state = isSignIn ? signInState : signUpState
   const isPending = isSignIn ? signInPending : signUpPending
   const callbackError = searchParams.get('error')
+  const callbackInfo = searchParams.get('info')
   const title = isSignIn ? '로그인' : '회원가입'
   const description = isSignIn
     ? '기존 계정이 있으면 이메일 또는 Google로 로그인하세요.'
@@ -191,14 +193,22 @@ export function AuthForm() {
         </div>
 
         {isSignIn ? (
-          <label className="flex items-center gap-2 text-xs text-muted-foreground">
-            <input
-              ref={rememberEmailRef}
-              type="checkbox"
-              className="h-4 w-4 rounded border-border bg-background text-primary"
-            />
-            이메일 기억하기
-          </label>
+          <div className="flex items-center justify-between gap-3">
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <input
+                ref={rememberEmailRef}
+                type="checkbox"
+                className="h-4 w-4 rounded border-border bg-background text-primary"
+              />
+              이메일 기억하기
+            </label>
+            <Link
+              href="/forgot-password"
+              className="text-xs text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+            >
+              Forgot password?
+            </Link>
+          </div>
         ) : null}
 
         {!isSignIn && (
@@ -240,6 +250,11 @@ export function AuthForm() {
         {state?.info && (
           <p className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
             {state.info}
+          </p>
+        )}
+        {callbackInfo && (
+          <p className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
+            {callbackInfo}
           </p>
         )}
         {(oauthError || callbackError) && (
