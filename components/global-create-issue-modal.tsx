@@ -7,6 +7,7 @@ import { createIssue } from '@/lib/actions/issues'
 import { getProjectsAction } from '@/lib/actions/projects'
 import { Button } from '@/components/ui/button'
 import { DatePickerInput } from '@/components/ui/date-picker-input'
+import { FileDropzone } from '@/components/file-dropzone'
 import { getTodayYmd } from '@/lib/date-utils'
 import { ALL_PRIORITIES, PRIORITY_LABELS } from '@/lib/priority'
 import { formatBytes } from '@/lib/utils'
@@ -96,14 +97,17 @@ export function GlobalCreateIssueModal() {
     return () => window.removeEventListener('moa:create-issue', onOpenWithPreset)
   }, [])
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const newFiles = Array.from(e.target.files ?? [])
+  function addFiles(newFiles: File[]) {
     if (!newFiles.length) return
     const entries: SelectedFile[] = newFiles.map((file) => ({
       file,
       previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
     }))
     setSelectedFiles((prev) => [...prev, ...entries])
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    addFiles(Array.from(e.target.files ?? []))
     e.target.value = ''
   }
 
@@ -289,6 +293,8 @@ export function GlobalCreateIssueModal() {
                 onChange={handleFileChange}
               />
             </div>
+
+            <FileDropzone onFilesSelected={addFiles} disabled={isPending} />
 
             {selectedFiles.length > 0 && (
               <ul className="dashboard-scroll max-h-56 space-y-1.5 overflow-y-auto pr-1">

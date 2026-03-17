@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createIssue } from '@/lib/actions/issues'
 import { Button } from '@/components/ui/button'
 import { DatePickerInput } from '@/components/ui/date-picker-input'
+import { FileDropzone } from '@/components/file-dropzone'
 import { InlineSpinner } from '@/components/ui/inline-spinner'
 import { getTodayYmd } from '@/lib/date-utils'
 import { ALL_PRIORITIES, PRIORITY_LABELS } from '@/lib/priority'
@@ -33,14 +34,17 @@ export function CreateIssueForm({ projectId }: { projectId: string }) {
     })
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const newFiles = Array.from(e.target.files ?? [])
+  function addFiles(newFiles: File[]) {
     if (!newFiles.length) return
     const entries: SelectedFile[] = newFiles.map((file) => ({
       file,
       previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
     }))
     setSelectedFiles((prev) => [...prev, ...entries])
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    addFiles(Array.from(e.target.files ?? []))
     e.target.value = ''
   }
 
@@ -146,6 +150,8 @@ export function CreateIssueForm({ projectId }: { projectId: string }) {
             onChange={handleFileChange}
           />
         </div>
+
+        <FileDropzone onFilesSelected={addFiles} disabled={isPending} />
 
         {selectedFiles.length > 0 ? (
           <ul className="space-y-1.5">

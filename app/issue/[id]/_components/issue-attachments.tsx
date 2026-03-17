@@ -2,6 +2,7 @@ import Image from 'next/image'
 import { formatBytes } from '@/lib/utils'
 import type { IssueAttachment } from '@/lib/types'
 import { AddAttachmentButton } from './add-attachment-button'
+import { AttachmentDropzone } from './attachment-dropzone'
 import { DeleteAttachmentButton } from './delete-attachment-button'
 
 function ImageAttachment({ att, issueId }: { att: IssueAttachment; issueId: string }) {
@@ -103,6 +104,8 @@ export function IssueAttachments({
         </h2>
         <AddAttachmentButton issueId={issueId} />
       </div>
+
+      <AttachmentDropzone issueId={issueId} />
 
       {attachments.length === 0 && (
         <p className="text-xs text-muted-foreground">No attachments yet.</p>

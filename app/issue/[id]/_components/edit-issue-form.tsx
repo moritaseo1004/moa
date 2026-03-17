@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState, useState } from 'react'
+import { LinkifiedText } from '@/components/linkified-text'
 import { updateIssue } from '@/lib/actions/issues'
 import { Button } from '@/components/ui/button'
 import type { IssueWithRelations } from '@/lib/types'
@@ -21,7 +22,10 @@ export function EditIssueForm({ issue }: { issue: IssueWithRelations }) {
       >
         <h1 className="text-lg font-semibold">{issue.title}</h1>
         {issue.description ? (
-          <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap">{issue.description}</p>
+          <LinkifiedText
+            text={issue.description}
+            className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap break-words"
+          />
         ) : (
           <p className="text-sm text-muted-foreground/50 mt-2 italic">Add a description…</p>
         )}

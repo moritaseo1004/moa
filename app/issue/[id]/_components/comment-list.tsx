@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
+import { LinkifiedText } from '@/components/linkified-text'
 import { deleteComment } from '@/lib/actions/comments'
 import { formatSeoulDateTime } from '@/lib/date-format'
 import type { CommentWithUser } from '@/lib/types'
@@ -106,7 +107,7 @@ function CommentItem({
           )}
         </div>
       </div>
-      <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
+      <LinkifiedText text={comment.content} className="text-sm whitespace-pre-wrap break-words" />
     </div>
   )
 }
