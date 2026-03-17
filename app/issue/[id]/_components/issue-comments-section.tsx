@@ -20,8 +20,8 @@ export async function IssueCommentsSection({
         ) : null}
       </h2>
 
-      <CommentList comments={comments} issueId={issueId} currentUserId={currentUserId} />
       <CommentForm issueId={issueId} />
+      <CommentList comments={comments} issueId={issueId} currentUserId={currentUserId} />
     </div>
   )
 }

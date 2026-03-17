@@ -4,9 +4,22 @@ import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdminUser } from '@/lib/user-admin'
 import { getAuthenticatedProfile } from '@/lib/actions/authz'
+import { getUsers } from '@/lib/data/users'
 
 type UserRole = 'admin' | 'member'
 type SlackLinkState = { error?: string; success?: string } | null
+
+export async function listMentionableUsers() {
+  const profile = await getAuthenticatedProfile()
+  if (!profile) return []
+
+  const users = await getUsers()
+  return users.map((user) => ({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+  }))
+}
 
 async function countAdmins() {
   const supabase = createAdminClient()

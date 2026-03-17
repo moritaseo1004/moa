@@ -4,10 +4,13 @@ import Image from 'next/image'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createIssue } from '@/lib/actions/issues'
+import { listMentionableUsers } from '@/lib/actions/users'
+import { FormSelectField } from '@/components/form-select-field'
 import { Button } from '@/components/ui/button'
 import { DatePickerInput } from '@/components/ui/date-picker-input'
 import { FileDropzone } from '@/components/file-dropzone'
 import { InlineSpinner } from '@/components/ui/inline-spinner'
+import { MentionTextarea } from '@/components/mention-textarea'
 import { getTodayYmd } from '@/lib/date-utils'
 import { ALL_PRIORITIES, PRIORITY_LABELS } from '@/lib/priority'
 import { formatBytes } from '@/lib/utils'
@@ -17,6 +20,11 @@ interface SelectedFile {
   previewUrl: string | null // only set for images
 }
 
+interface AssignableUser {
+  id: string
+  name: string
+}
+
 export function CreateIssueModal({ projectId }: { projectId: string }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -24,6 +32,7 @@ export function CreateIssueModal({ projectId }: { projectId: string }) {
   const [state, setState] = useState<{ error?: string } | null>(null)
   const [isPending, startTransition] = useTransition()
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([])
+  const [users, setUsers] = useState<AssignableUser[]>([])
   const [startDateValue, setStartDateValue] = useState<string | null>(getTodayYmd())
   const formRef = useRef<HTMLFormElement>(null)
   const firstInputRef = useRef<HTMLInputElement>(null)
@@ -47,6 +56,7 @@ export function CreateIssueModal({ projectId }: { projectId: string }) {
   // Focus first input when opening
   useEffect(() => {
     if (open) {
+      listMentionableUsers().then(setUsers).catch(() => setUsers([]))
       setTimeout(() => firstInputRef.current?.focus(), 50)
     }
   }, [open])
@@ -116,9 +126,14 @@ export function CreateIssueModal({ projectId }: { projectId: string }) {
 
   return (
     <>
-      <Button size="sm" onClick={() => setOpen(true)}>
-        New issue
-      </Button>
+      <div className="group relative inline-flex">
+        <Button size="sm" onClick={() => setOpen(true)}>
+          New issue
+        </Button>
+        <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-[#1f1f1f] px-2.5 py-1 text-xs font-medium text-foreground shadow-xl opacity-0 transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100">
+          Shift + N
+        </span>
+      </div>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
@@ -146,8 +161,8 @@ export function CreateIssueModal({ projectId }: { projectId: string }) {
             >
               <input type="hidden" name="project_id" value={projectId} />
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              <div>
+                <label className="mb-3 block text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Title <span className="text-destructive">*</span>
                 </label>
                 <input
@@ -159,11 +174,11 @@ export function CreateIssueModal({ projectId }: { projectId: string }) {
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              <div>
+                <label className="mb-3 block text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Description
                 </label>
-                <textarea
+                <MentionTextarea
                   name="description"
                   placeholder="Add a description…"
                   rows={10}
@@ -172,24 +187,37 @@ export function CreateIssueModal({ projectId }: { projectId: string }) {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Priority
+              <div className="grid grid-cols-4 gap-3">
+                <div>
+                  <label className="mb-3 block text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Assignee
                   </label>
-                  <select
-                    name="priority"
-                    defaultValue="medium"
-                    className="w-full rounded-lg border border-border bg-background px-2 py-2 text-sm outline-none focus:ring-0"
-                  >
-                    {ALL_PRIORITIES.map((p) => (
-                      <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>
-                    ))}
-                  </select>
+                  <FormSelectField
+                    name="assignee_id"
+                    defaultValue=""
+                    options={[
+                      { value: '', label: 'Unassigned', muted: true },
+                      ...users.map((user) => ({ value: user.id, label: user.name })),
+                    ]}
+                  />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                <div>
+                  <label className="mb-3 block text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Priority
+                  </label>
+                  <FormSelectField
+                    name="priority"
+                    defaultValue="medium"
+                    options={ALL_PRIORITIES.map((priority) => ({
+                      value: priority,
+                      label: PRIORITY_LABELS[priority],
+                    }))}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-3 block text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     Start date
                   </label>
                   <DatePickerInput
@@ -201,8 +229,8 @@ export function CreateIssueModal({ projectId }: { projectId: string }) {
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                <div>
+                  <label className="mb-3 block text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     Due date
                   </label>
                   <DatePickerInput

@@ -5,6 +5,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { logActivity } from '@/lib/data/activity'
 import { getAuthenticatedUserId } from '@/lib/actions/authz'
 import { getTodayYmd } from '@/lib/date-utils'
+import { getNewMentionedUserIds } from '@/lib/notification-utils'
+import { createNotifications } from '@/lib/notifications'
 import type { IssueStatus, IssuePriority } from '@/lib/types'
 
 type State = { error?: string } | null
@@ -57,6 +59,7 @@ export async function createIssue(_prevState: State, formData: FormData): Promis
   const title = (formData.get('title') as string)?.trim()
   const description = (formData.get('description') as string)?.trim() || null
   const project_id = formData.get('project_id') as string
+  const assignee_id = ((formData.get('assignee_id') as string) || '').trim() || null
   const priority = (formData.get('priority') as IssuePriority) || 'medium'
   const start_date = (formData.get('start_date') as string) || getTodayYmd()
   const due_date = (formData.get('due_date') as string) || null
@@ -72,8 +75,8 @@ export async function createIssue(_prevState: State, formData: FormData): Promis
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('issues')
-    .insert({ title, description, project_id, status: 'backlog', source: 'manual', reporter_id, priority, start_date, due_date })
-    .select('id')
+    .insert({ title, description, project_id, status: 'backlog', source: 'manual', reporter_id, assignee_id, priority, start_date, due_date })
+    .select('id, title')
     .single()
 
   if (error) return { error: error.message }
@@ -85,6 +88,39 @@ export async function createIssue(_prevState: State, formData: FormData): Promis
     action: 'issue_created',
     metadata: { title, project_id, start_date, due_date },
   })
+
+  const mentionRecipientIds = getNewMentionedUserIds(description, null)
+
+  await createNotifications(
+    mentionRecipientIds.map((recipient_user_id) => ({
+      recipient_user_id,
+      actor_user_id: reporter_id,
+      issue_id: data.id,
+      type: 'mention',
+      title: `You were mentioned in ${title}`,
+      body: 'A teammate mentioned you in a new issue description.',
+      link_url: `/issue/${data.id}`,
+    })),
+  )
+
+  if (mentionRecipientIds.length > 0) {
+    revalidatePath('/', 'layout')
+  }
+
+  if (assignee_id) {
+    await createNotifications([
+      {
+        recipient_user_id: assignee_id,
+        actor_user_id: reporter_id,
+        issue_id: data.id,
+        type: 'assigned',
+        title: `You were assigned to ${data.title}`,
+        body: 'A teammate assigned this new issue to you.',
+        link_url: `/issue/${data.id}`,
+      },
+    ])
+    revalidatePath('/', 'layout')
+  }
 
   // Upload attachments if any
   const files = formData.getAll('attachments') as File[]
@@ -139,6 +175,12 @@ export async function updateIssue(_prevState: State, formData: FormData): Promis
   if (!actorId) return { error: 'Unauthorized' }
 
   const supabase = createAdminClient()
+  const { data: before } = await supabase
+    .from('issues')
+    .select('description, title')
+    .eq('id', id)
+    .single()
+
   const { error } = await supabase
     .from('issues')
     .update({ title, description })
@@ -153,6 +195,24 @@ export async function updateIssue(_prevState: State, formData: FormData): Promis
     action: 'issue_updated',
     metadata: { fields: ['title', 'description'] },
   })
+
+  const mentionRecipientIds = getNewMentionedUserIds(description, before?.description)
+
+  await createNotifications(
+    mentionRecipientIds.map((recipient_user_id) => ({
+      recipient_user_id,
+      actor_user_id: actorId,
+      issue_id: id,
+      type: 'mention',
+      title: `You were mentioned in ${title}`,
+      body: 'A teammate mentioned you in an issue description update.',
+      link_url: `/issue/${id}`,
+    })),
+  )
+
+  if (mentionRecipientIds.length > 0) {
+    revalidatePath('/', 'layout')
+  }
 
   revalidatePath(`/issue/${id}`)
   revalidatePath(`/project/${project_id}`)
@@ -208,6 +268,11 @@ export async function updateIssueAssignee(
   if (!actorId) return { error: 'Unauthorized' }
 
   const supabase = createAdminClient()
+  const { data: before } = await supabase
+    .from('issues')
+    .select('assignee_id, title')
+    .eq('id', issueId)
+    .single()
 
   const { error } = await supabase
     .from('issues')
@@ -223,6 +288,22 @@ export async function updateIssueAssignee(
     action: 'assignee_changed',
     metadata: { assignee_id: assigneeId },
   })
+
+  if (assigneeId && assigneeId !== before?.assignee_id) {
+    await createNotifications([
+      {
+        recipient_user_id: assigneeId,
+        actor_user_id: actorId,
+        issue_id: issueId,
+        type: 'assigned',
+        title: `You were assigned to ${before?.title ?? 'an issue'}`,
+        body: 'A teammate assigned this issue to you.',
+        link_url: `/issue/${issueId}`,
+      },
+    ])
+
+    revalidatePath('/', 'layout')
+  }
 
   revalidatePath(`/issue/${issueId}`)
   revalidatePath(`/project/${projectId}`)

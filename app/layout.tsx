@@ -2,9 +2,10 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Bell } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { getNotificationsForUser, getUnreadNotificationCount } from '@/lib/data/notifications'
 import { getCurrentUserProfile } from '@/lib/user-admin'
+import { NotificationsMenu } from '@/components/notifications-menu'
 import { getProjects } from '@/lib/data/projects'
 import { GlobalCreateIssueModal } from '@/components/global-create-issue-modal'
 import { GlobalSearchForm } from '@/components/global-search-form'
@@ -29,6 +30,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const profile = user ? await getCurrentUserProfile() : null
   const showShell = Boolean(user && profile?.is_approved)
   const projects = showShell ? await getProjects() : []
+  const notifications = showShell && profile
+    ? await getNotificationsForUser(profile.id)
+    : []
+  const unreadNotificationCount = showShell && profile
+    ? await getUnreadNotificationCount(profile.id, profile.last_seen_notification_at)
+    : 0
   const userLabel = profile?.name ?? user?.user_metadata?.name ?? user?.email ?? 'Workspace'
   const userEmail = profile?.email ?? user?.email ?? null
   const roleLabel = formatRoleLabel(profile?.role)
@@ -74,13 +81,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   <div className="flex items-center gap-2">
                     <HelpCenterButton isAdmin={profile?.role === 'admin'} />
 
-                    <button
-                      type="button"
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-[#1f1f1f] text-muted-foreground transition-colors hover:bg-[#232323] hover:text-foreground"
-                      title="Notifications"
-                    >
-                      <Bell className="h-4 w-4" />
-                    </button>
+                    <NotificationsMenu
+                      notifications={notifications}
+                      initialUnreadCount={unreadNotificationCount}
+                    />
 
                     {user ? (
                       <HeaderProfileMenu

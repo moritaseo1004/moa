@@ -25,6 +25,7 @@ create table public.users (
   first_auth_provider text  not null default 'email',
   last_sign_in_provider text not null default 'email',
   last_sign_in_at timestamptz,
+  last_seen_notification_at timestamptz,
   created_at    timestamptz not null default now()
 );
 
@@ -82,6 +83,19 @@ create table public.activity_logs (
   created_at  timestamptz not null default now()
 );
 
+create table public.notifications (
+  id                uuid        primary key default uuid_generate_v4(),
+  recipient_user_id uuid        not null references public.users(id) on delete cascade,
+  actor_user_id     uuid        references public.users(id) on delete set null,
+  issue_id          uuid        references public.issues(id) on delete cascade,
+  comment_id        uuid        references public.comments(id) on delete cascade,
+  type              text        not null check (type in ('mention', 'assigned')),
+  title             text        not null,
+  body              text,
+  link_url          text        not null,
+  created_at        timestamptz not null default now()
+);
+
 -- Dashboard notes
 create table public.dashboard_notes (
   id         uuid        primary key default uuid_generate_v4(),
@@ -101,6 +115,7 @@ create index idx_issues_priority     on public.issues(priority);
 create index idx_comments_issue_id   on public.comments(issue_id);
 create index idx_activity_entity     on public.activity_logs(entity_type, entity_id);
 create index idx_activity_user_id    on public.activity_logs(user_id);
+create index idx_notifications_recipient_created on public.notifications(recipient_user_id, created_at desc);
 create index idx_dashboard_notes_user_date on public.dashboard_notes(user_id, note_date desc, created_at desc);
 create index idx_user_identities_user_id on public.user_identities(user_id);
 create unique index idx_user_identities_provider_email on public.user_identities(provider, provider_email);
@@ -128,6 +143,7 @@ alter table public.projects      enable row level security;
 alter table public.issues        enable row level security;
 alter table public.comments      enable row level security;
 alter table public.activity_logs enable row level security;
+alter table public.notifications enable row level security;
 alter table public.dashboard_notes enable row level security;
 
 -- Authenticated users can read everything
@@ -148,6 +164,9 @@ create policy "authenticated read"
 
 create policy "authenticated read"
   on public.activity_logs for select to authenticated using (true);
+
+create policy "own notifications read"
+  on public.notifications for select to authenticated using (public.current_app_user_id() = recipient_user_id);
 
 create policy "own notes read"
   on public.dashboard_notes for select to authenticated using (public.current_app_user_id() = user_id);

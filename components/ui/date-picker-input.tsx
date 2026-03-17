@@ -82,8 +82,8 @@ export function DatePickerInput({
         onClick={openNativePicker}
         disabled={disabled}
         className={cn(
-          'h-9 w-full rounded-lg border border-border bg-background px-2.5 pr-9 text-sm',
-          'inline-flex items-center gap-2 text-muted-foreground',
+          'inline-flex h-10 w-full items-center gap-2 rounded-md border border-border bg-[#1f1f1f] px-3 pr-9 text-sm text-muted-foreground transition-colors',
+          'hover:bg-[#232323] focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30',
           displayClassName,
           disabled && 'cursor-not-allowed opacity-50',
         )}
@@ -100,7 +100,7 @@ export function DatePickerInput({
             e.stopPropagation()
             setValue('')
           }}
-          className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
+          className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground"
         >
           <X className="h-3.5 w-3.5" />
         </button>

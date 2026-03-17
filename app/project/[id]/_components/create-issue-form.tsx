@@ -1,12 +1,15 @@
 'use client'
 
 import Image from 'next/image'
-import { useRef, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createIssue } from '@/lib/actions/issues'
+import { listMentionableUsers } from '@/lib/actions/users'
+import { FormSelectField } from '@/components/form-select-field'
 import { Button } from '@/components/ui/button'
 import { DatePickerInput } from '@/components/ui/date-picker-input'
 import { FileDropzone } from '@/components/file-dropzone'
+import { MentionTextarea } from '@/components/mention-textarea'
 import { InlineSpinner } from '@/components/ui/inline-spinner'
 import { getTodayYmd } from '@/lib/date-utils'
 import { ALL_PRIORITIES, PRIORITY_LABELS } from '@/lib/priority'
@@ -17,15 +20,25 @@ interface SelectedFile {
   previewUrl: string | null
 }
 
+interface AssignableUser {
+  id: string
+  name: string
+}
+
 export function CreateIssueForm({ projectId }: { projectId: string }) {
   const router = useRouter()
   const pathname = usePathname()
   const [state, setState] = useState<{ error?: string } | null>(null)
   const [isPending, startTransition] = useTransition()
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([])
+  const [users, setUsers] = useState<AssignableUser[]>([])
   const [startDateValue, setStartDateValue] = useState<string | null>(getTodayYmd())
   const formRef = useRef<HTMLFormElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    listMentionableUsers().then(setUsers).catch(() => setUsers([]))
+  }, [])
 
   function revokeAndClear() {
     setSelectedFiles((prev) => {
@@ -100,25 +113,32 @@ export function CreateIssueForm({ projectId }: { projectId: string }) {
           className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/50 placeholder:text-muted-foreground"
         />
       </div>
-      <div>
-        <textarea
-          name="description"
-          placeholder="Description (optional)"
-          rows={2}
-          onPaste={handleDescriptionPaste}
-          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/50 placeholder:text-muted-foreground resize-none"
-        />
-      </div>
+      <MentionTextarea
+        name="description"
+        placeholder="Description (optional)"
+        rows={2}
+        onPaste={handleDescriptionPaste}
+        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/50 placeholder:text-muted-foreground resize-none"
+      />
       <div className="flex gap-3">
-        <select
+        <FormSelectField
+          name="assignee_id"
+          defaultValue=""
+          options={[
+            { value: '', label: 'Unassigned', muted: true },
+            ...users.map((user) => ({ value: user.id, label: user.name })),
+          ]}
+          className="w-[170px]"
+        />
+        <FormSelectField
           name="priority"
           defaultValue="medium"
-          className="rounded-lg border border-border bg-background px-2 py-2 text-sm outline-none focus:ring-0 text-muted-foreground"
-        >
-          {ALL_PRIORITIES.map((p) => (
-            <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>
-          ))}
-        </select>
+          options={ALL_PRIORITIES.map((priority) => ({
+            value: priority,
+            label: PRIORITY_LABELS[priority],
+          }))}
+          className="w-[170px]"
+        />
         <DatePickerInput
           name="start_date"
           value={startDateValue}
@@ -134,7 +154,7 @@ export function CreateIssueForm({ projectId }: { projectId: string }) {
       </div>
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">Paste images into description or add files.</p>
+          <p className="text-xs text-muted-foreground">Paste images into description, mention teammates with @, or add files.</p>
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}

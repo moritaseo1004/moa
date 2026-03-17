@@ -23,6 +23,7 @@ export interface User {
   first_auth_provider: AuthProvider
   last_sign_in_provider: AuthProvider
   last_sign_in_at: string | null
+  last_seen_notification_at: string | null
   created_at: string
 }
 
@@ -85,6 +86,23 @@ export interface ActivityLog {
 
 export interface ActivityLogWithUser extends ActivityLog {
   user?: User | null
+}
+
+export interface Notification {
+  id: string
+  recipient_user_id: string
+  actor_user_id: string | null
+  issue_id: string | null
+  comment_id: string | null
+  type: 'mention' | 'assigned'
+  title: string
+  body: string | null
+  link_url: string
+  created_at: string
+}
+
+export interface NotificationWithActor extends Notification {
+  actor?: User | null
 }
 
 export interface DashboardNote {

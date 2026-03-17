@@ -117,7 +117,7 @@ const shortcuts: ShortcutItem[] = [
     description: '전역 검색 열기',
   },
   {
-    keys: ['Ctrl', 'N'],
+    keys: ['Shift', 'N'],
     description: '전역 새 이슈 모달 열기',
   },
   {

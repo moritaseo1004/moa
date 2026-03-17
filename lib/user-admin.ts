@@ -35,6 +35,7 @@ function applyMasterOverride(profile: User | null, authUser: { id: string; email
     first_auth_provider: 'email',
     last_sign_in_provider: 'email',
     last_sign_in_at: null,
+    last_seen_notification_at: null,
     created_at: new Date().toISOString(),
   }
 }

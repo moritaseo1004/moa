@@ -5,10 +5,13 @@ import { useEffect, useRef, useState, useTransition } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createIssue } from '@/lib/actions/issues'
 import { getProjectsAction } from '@/lib/actions/projects'
+import { listMentionableUsers } from '@/lib/actions/users'
+import { FormSelectField } from '@/components/form-select-field'
 import { Button } from '@/components/ui/button'
 import { DatePickerInput } from '@/components/ui/date-picker-input'
 import { FileDropzone } from '@/components/file-dropzone'
 import { getTodayYmd } from '@/lib/date-utils'
+import { MentionTextarea } from '@/components/mention-textarea'
 import { ALL_PRIORITIES, PRIORITY_LABELS } from '@/lib/priority'
 import { formatBytes } from '@/lib/utils'
 import type { Project } from '@/lib/types'
@@ -18,11 +21,17 @@ interface SelectedFile {
   previewUrl: string | null
 }
 
+interface AssignableUser {
+  id: string
+  name: string
+}
+
 export function GlobalCreateIssueModal() {
   const router = useRouter()
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [projects, setProjects] = useState<Project[]>([])
+  const [users, setUsers] = useState<AssignableUser[]>([])
   const [state, setState] = useState<{ error?: string } | null>(null)
   const [isPending, startTransition] = useTransition()
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([])
@@ -50,13 +59,13 @@ export function GlobalCreateIssueModal() {
     formRef.current?.reset()
   }
 
-  // Global shortcut: Ctrl + N
+  // Global shortcut: Shift + N
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement).tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       if ((e.target as HTMLElement).isContentEditable) return
-      if (e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === 'n') {
+      if (!e.ctrlKey && !e.metaKey && !e.altKey && e.shiftKey && e.key.toLowerCase() === 'n') {
         e.preventDefault()
         setSelectedProjectId('')
         setStartDateValue(getTodayYmd())
@@ -71,7 +80,15 @@ export function GlobalCreateIssueModal() {
   // Load projects when modal opens
   useEffect(() => {
     if (!open) return
-    getProjectsAction().then(setProjects)
+    Promise.all([getProjectsAction(), listMentionableUsers()])
+      .then(([projectData, userData]) => {
+        setProjects(projectData)
+        setUsers(userData)
+      })
+      .catch(() => {
+        setProjects([])
+        setUsers([])
+      })
     setTimeout(() => firstInputRef.current?.focus(), 50)
   }, [open])
 
@@ -195,8 +212,8 @@ export function GlobalCreateIssueModal() {
             </select>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          <div>
+            <label className="mb-3 block text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Title <span className="text-destructive">*</span>
             </label>
             <input
@@ -208,11 +225,11 @@ export function GlobalCreateIssueModal() {
             />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          <div>
+            <label className="mb-3 block text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Description
             </label>
-            <textarea
+            <MentionTextarea
               name="description"
               placeholder="Add a description…"
               rows={10}
@@ -221,24 +238,37 @@ export function GlobalCreateIssueModal() {
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Priority
+          <div className="grid grid-cols-4 gap-3">
+            <div>
+              <label className="mb-3 block text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Assignee
               </label>
-              <select
-                name="priority"
-                defaultValue="medium"
-                className="w-full rounded-lg border border-border bg-background px-2 py-2 text-sm outline-none focus:ring-0"
-              >
-                {ALL_PRIORITIES.map((p) => (
-                  <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>
-                ))}
-              </select>
+              <FormSelectField
+                name="assignee_id"
+                defaultValue=""
+                options={[
+                  { value: '', label: 'Unassigned', muted: true },
+                  ...users.map((user) => ({ value: user.id, label: user.name })),
+                ]}
+              />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <div>
+              <label className="mb-3 block text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Priority
+              </label>
+              <FormSelectField
+                name="priority"
+                defaultValue="medium"
+                options={ALL_PRIORITIES.map((priority) => ({
+                  value: priority,
+                  label: PRIORITY_LABELS[priority],
+                }))}
+              />
+            </div>
+
+            <div>
+              <label className="mb-3 block text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Start date
               </label>
               <DatePickerInput
@@ -250,8 +280,8 @@ export function GlobalCreateIssueModal() {
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <div>
+              <label className="mb-3 block text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Due date
               </label>
               <DatePickerInput

@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 import { isMasterEmail } from '@/lib/auth-policy'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Pass-through for Slack webhooks — no session needed
   if (request.nextUrl.pathname.startsWith('/api/')) {
     return NextResponse.next()

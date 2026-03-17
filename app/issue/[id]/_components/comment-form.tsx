@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState, useEffect, useRef } from 'react'
+import { MentionTextarea } from '@/components/mention-textarea'
 import { addComment } from '@/lib/actions/comments'
 import { Button } from '@/components/ui/button'
 import { InlineSpinner } from '@/components/ui/inline-spinner'
@@ -18,7 +19,7 @@ export function CommentForm({ issueId }: { issueId: string }) {
   return (
     <form ref={formRef} action={action} className="space-y-2">
       <input type="hidden" name="issue_id" value={issueId} />
-      <textarea
+      <MentionTextarea
         name="content"
         placeholder="Write a comment…"
         rows={3}

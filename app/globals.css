@@ -169,6 +169,35 @@
   background-color: hsl(215 18% 56% / 0.9);
 }
 
+.issue-description-resize {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(215 16% 42% / 0.55) transparent;
+}
+
+.issue-description-resize::-webkit-scrollbar {
+  width: 10px;
+}
+
+.issue-description-resize::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.issue-description-resize::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+  background-color: hsl(215 16% 42% / 0.55);
+}
+
+.issue-description-resize::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(215 18% 56% / 0.75);
+}
+
+.issue-description-resize::-webkit-resizer {
+  background:
+    linear-gradient(135deg, transparent 0 48%, rgba(62, 207, 142, 0.6) 48% 54%, transparent 54% 64%, rgba(62, 207, 142, 0.35) 64% 70%, transparent 70%);
+}
+
 .login-stage {
   background: #020202;
   --login-signal-accent: 104, 210, 140;
