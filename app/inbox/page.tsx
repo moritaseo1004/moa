@@ -3,11 +3,17 @@ import { getInboxProject } from '@/lib/data/projects'
 import { getIssuesByProject } from '@/lib/data/issues'
 import { getUsers } from '@/lib/data/users'
 import { KanbanBoard } from '@/app/project/[id]/_components/kanban-board'
+import { IssueDetailSheet } from '@/app/project/[id]/_components/issue-detail-sheet'
 
 export const metadata = { title: 'Inbox — Tracker' }
 
-export default async function InboxPage() {
+export default async function InboxPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ issue?: string }>
+}) {
   const project = await getInboxProject()
+  const { issue: selectedIssueId } = await searchParams
 
   if (!project) {
     return (
@@ -49,6 +55,10 @@ export default async function InboxPage() {
       <div className="flex-1 overflow-x-auto px-6 py-6">
         <KanbanBoard issues={issues} projectId={project.id} users={users} />
       </div>
+
+      {selectedIssueId ? (
+        <IssueDetailSheet issueId={selectedIssueId} projectId={project.id} basePath="/inbox" />
+      ) : null}
     </div>
   )
 }

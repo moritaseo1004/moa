@@ -25,9 +25,11 @@ import { IssueDetailSheetCloseButton, IssueDetailSheetFrame } from './issue-deta
 export async function IssueDetailSheet({
   issueId,
   projectId,
+  basePath,
 }: {
   issueId: string
   projectId: string
+  basePath?: string
 }) {
   const currentUser = await getCurrentUserProfile()
 
@@ -45,12 +47,13 @@ export async function IssueDetailSheet({
   const comments = issue.comments ?? []
   const recentActivity = activity.slice(0, 3)
   const remainingActivity = activity.slice(3)
-  const closeHref = `/project/${projectId}`
+  const panelBasePath = basePath ?? `/project/${projectId}`
+  const closeHref = panelBasePath
   const currentIndex = sequence.findIndex((item) => item.id === issue.id)
   const previousIssue = currentIndex > 0 ? sequence[currentIndex - 1] : null
   const nextIssue = currentIndex >= 0 && currentIndex < sequence.length - 1 ? sequence[currentIndex + 1] : null
-  const previousHref = previousIssue ? `/project/${projectId}?issue=${previousIssue.id}` : null
-  const nextHref = nextIssue ? `/project/${projectId}?issue=${nextIssue.id}` : null
+  const previousHref = previousIssue ? `${panelBasePath}?issue=${previousIssue.id}` : null
+  const nextHref = nextIssue ? `${panelBasePath}?issue=${nextIssue.id}` : null
 
   return (
     <IssueDetailSheetFrame closeHref={closeHref}>
