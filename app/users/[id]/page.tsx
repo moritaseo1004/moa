@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { updateUserApproval, updateUserRole } from '@/lib/actions/users'
 import { getUser } from '@/lib/data/users'
 import { requireAdminUser } from '@/lib/user-admin'
+import { SlackLinkForm } from './_components/slack-link-form'
 
 export const metadata = { title: 'User Detail — Tracker' }
 
@@ -76,6 +77,8 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
           </p>
         </section>
       </div>
+
+      <SlackLinkForm userId={user.id} defaultSlackUserId={user.slack_user_id} />
     </div>
   )
 }
