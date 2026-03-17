@@ -104,7 +104,6 @@ export default async function IssuePage({ params }: { params: Promise<{ id: stri
 
         <div className="flex items-center gap-2">
           <CopyIssueLinkButton issueId={issue.id} />
-          <DeleteIssueButton issueId={issue.id} projectId={issue.project_id} />
           <CompleteButton issueId={issue.id} projectId={issue.project_id} isDone={isDone} />
         </div>
       </div>
@@ -209,6 +208,18 @@ export default async function IssuePage({ params }: { params: Promise<{ id: stri
               <p className="text-xs text-muted-foreground">
                 {formatSeoulDateTime(issue.created_at)}
               </p>
+            </div>
+
+            <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 space-y-3">
+              <div className="space-y-1">
+                <h3 className="text-xs font-medium uppercase tracking-wide text-destructive/80">
+                  Danger zone
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  이 작업은 되돌릴 수 없어. 이슈를 완전히 제거할 때만 사용해.
+                </p>
+              </div>
+              <DeleteIssueButton issueId={issue.id} projectId={issue.project_id} />
             </div>
           </div>
 
