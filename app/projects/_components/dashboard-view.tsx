@@ -116,16 +116,13 @@ function IssueList({
   )
 }
 
-export function DashboardView({ issues, today, initialNotes }: DashboardViewProps) {
+export function DashboardIssuePanels({
+  issues,
+  today,
+}: Pick<DashboardViewProps, 'issues' | 'today'>) {
   const weekStart = useMemo(() => startOfWeekMonday(today), [today])
   const weekEnd = useMemo(() => toYmd(addDays(parseYmd(weekStart), 6)), [weekStart])
   const weekFriday = useMemo(() => toYmd(addDays(parseYmd(weekStart), 4)), [weekStart])
-
-  const [notes, setNotes] = useState(initialNotes)
-  const [noteTitle, setNoteTitle] = useState('')
-  const [noteContent, setNoteContent] = useState('')
-  const [noteError, setNoteError] = useState<string | null>(null)
-  const [isPending, startTransition] = useTransition()
 
   const todayIssues = useMemo(
     () => issues.filter((issue) => issue.due_date === today),
@@ -137,13 +134,8 @@ export function DashboardView({ issues, today, initialNotes }: DashboardViewProp
     [issues, weekEnd, weekStart],
   )
 
-  const selectedNotes = useMemo(
-    () => notes.filter((note) => note.note_date === today),
-    [notes, today],
-  )
-
   return (
-    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(320px,0.9fr)]">
+    <div className="grid items-start gap-4 xl:grid-cols-2">
       <div>
         <IssueList
           title="Today"
@@ -161,104 +153,131 @@ export function DashboardView({ issues, today, initialNotes }: DashboardViewProp
           createDueDate={weekFriday}
         />
       </div>
+    </div>
+  )
+}
 
-      <section className="rounded-xl border border-border bg-card/50 p-4 xl:sticky xl:top-20">
-        <div className="rounded-lg border border-border bg-background/60 p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-medium">Quick Notes</p>
-            <span className="text-xs text-muted-foreground">{formatDateLabel(today)}</span>
-          </div>
+export function DashboardNotesPanel({
+  today,
+  initialNotes,
+}: Pick<DashboardViewProps, 'today' | 'initialNotes'>) {
+  const [notes, setNotes] = useState(initialNotes)
+  const [noteTitle, setNoteTitle] = useState('')
+  const [noteContent, setNoteContent] = useState('')
+  const [noteError, setNoteError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
 
-          <div className="space-y-2">
-            <input
-              value={noteTitle}
-              onChange={(e) => setNoteTitle(e.target.value)}
-              placeholder="메모 제목"
-              className="h-9 w-full rounded-md border border-border bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/40"
-            />
-            <textarea
-              value={noteContent}
-              onChange={(e) => setNoteContent(e.target.value)}
-              placeholder="간단 메모..."
-              rows={2}
-              className="w-full resize-none rounded-md border border-border bg-background px-2.5 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/40"
-            />
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => {
-                const title = noteTitle.trim()
-                if (!title) {
-                  setNoteError('메모 제목을 입력해 주세요.')
+  const selectedNotes = useMemo(
+    () => notes.filter((note) => note.note_date === today),
+    [notes, today],
+  )
+
+  return (
+    <section className="rounded-xl border border-border bg-card/50 p-4 xl:sticky xl:top-20">
+      <div className="rounded-lg border border-border bg-background/60 p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-sm font-medium">Quick Notes</p>
+          <span className="text-xs text-muted-foreground">{formatDateLabel(today)}</span>
+        </div>
+
+        <div className="space-y-2">
+          <input
+            value={noteTitle}
+            onChange={(e) => setNoteTitle(e.target.value)}
+            placeholder="메모 제목"
+            className="h-9 w-full rounded-md border border-border bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/40"
+          />
+          <textarea
+            value={noteContent}
+            onChange={(e) => setNoteContent(e.target.value)}
+            placeholder="간단 메모..."
+            rows={2}
+            className="w-full resize-none rounded-md border border-border bg-background px-2.5 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/40"
+          />
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => {
+              const title = noteTitle.trim()
+              if (!title) {
+                setNoteError('메모 제목을 입력해 주세요.')
+                return
+              }
+              setNoteError(null)
+              startTransition(async () => {
+                const result = await addDashboardNote({
+                  noteDate: today,
+                  title,
+                  content: noteContent,
+                })
+                if (result.error) {
+                  setNoteError(result.error)
                   return
                 }
-                setNoteError(null)
-                startTransition(async () => {
-                  const result = await addDashboardNote({
-                    noteDate: today,
-                    title,
-                    content: noteContent,
-                  })
-                  if (result.error) {
-                    setNoteError(result.error)
-                    return
-                  }
-                  if (result.note) {
-                    const createdNote = result.note
-                    setNotes((prev) => [createdNote, ...prev])
-                  }
-                  setNoteTitle('')
-                  setNoteContent('')
-                })
-              }}
-              className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-background px-2.5 text-xs transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              메모 추가
-            </button>
-            {noteError && <p className="text-xs text-destructive">{noteError}</p>}
-          </div>
-
-          <div className="dashboard-scroll mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
-            {selectedNotes.length === 0 ? (
-              <p className="rounded-md border border-dashed border-border px-2 py-5 text-center text-sm text-muted-foreground">
-                선택한 날짜의 메모가 없습니다.
-              </p>
-            ) : (
-              selectedNotes.map((note) => (
-                <div key={note.id} className="rounded-md border border-border bg-background px-2.5 py-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{note.title}</p>
-                      {note.content && (
-                        <p className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground">{note.content}</p>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        startTransition(async () => {
-                          const result = await deleteDashboardNote(note.id)
-                          if (result.error) {
-                            setNoteError(result.error)
-                            return
-                          }
-                          setNoteError(null)
-                          setNotes((prev) => prev.filter((n) => n.id !== note.id))
-                        })
-                      }}
-                      className="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:text-destructive"
-                      aria-label="Delete note"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+                if (result.note) {
+                  const createdNote = result.note
+                  setNotes((prev) => [createdNote, ...prev])
+                }
+                setNoteTitle('')
+                setNoteContent('')
+              })
+            }}
+            className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-background px-2.5 text-xs transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            메모 추가
+          </button>
+          {noteError && <p className="text-xs text-destructive">{noteError}</p>}
         </div>
-      </section>
+
+        <div className="dashboard-scroll mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
+          {selectedNotes.length === 0 ? (
+            <p className="rounded-md border border-dashed border-border px-2 py-5 text-center text-sm text-muted-foreground">
+              선택한 날짜의 메모가 없습니다.
+            </p>
+          ) : (
+            selectedNotes.map((note) => (
+              <div key={note.id} className="rounded-md border border-border bg-background px-2.5 py-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{note.title}</p>
+                    {note.content ? (
+                      <p className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground">{note.content}</p>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      startTransition(async () => {
+                        const result = await deleteDashboardNote(note.id)
+                        if (result.error) {
+                          setNoteError(result.error)
+                          return
+                        }
+                        setNoteError(null)
+                        setNotes((prev) => prev.filter((n) => n.id !== note.id))
+                      })
+                    }}
+                    className="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:text-destructive"
+                    aria-label="Delete note"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+export function DashboardView({ issues, today, initialNotes }: DashboardViewProps) {
+  return (
+    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
+      <DashboardIssuePanels issues={issues} today={today} />
+      <DashboardNotesPanel today={today} initialNotes={initialNotes} />
     </div>
   )
 }

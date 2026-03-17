@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import {
   CalendarDays,
@@ -60,6 +60,7 @@ export function LeftRail({
   isAdmin?: boolean
 }) {
   const pathname = usePathname()
+  const router = useRouter()
   const settingsRef = useRef<HTMLDivElement | null>(null)
   const [isHovering, setIsHovering] = useState(false)
   const [showModeMenu, setShowModeMenu] = useState(false)
@@ -101,6 +102,16 @@ export function LeftRail({
       railMode === 'expanded' ? '13rem' : '3.5rem',
     )
   }, [railMode])
+
+  useEffect(() => {
+    router.prefetch('/dashboard')
+    router.prefetch('/calendar')
+    router.prefetch('/inbox')
+    router.prefetch('/projects')
+    if (isAdmin) {
+      router.prefetch('/users')
+    }
+  }, [isAdmin, router])
 
   useEffect(() => {
     const onPointerDown = (event: MouseEvent) => {

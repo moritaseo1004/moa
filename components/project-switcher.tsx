@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Check, ChevronDown, FolderKanban, Plus, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -20,6 +20,7 @@ export function ProjectSwitcher({
   projects: Project[]
 }) {
   const pathname = usePathname()
+  const router = useRouter()
   const rootRef = useRef<HTMLDivElement | null>(null)
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -104,6 +105,16 @@ export function ProjectSwitcher({
       return haystack.includes(keyword)
     })
   }, [projects, search])
+
+  useEffect(() => {
+    if (!open) return
+
+    const targets = visibleProjects
+      .slice(0, 8)
+      .map((project) => (isInboxProject(project) ? '/inbox' : `/project/${project.id}`))
+
+    targets.forEach((href) => router.prefetch(href))
+  }, [open, router, visibleProjects])
 
   return (
     <div ref={rootRef} className="relative min-w-0">

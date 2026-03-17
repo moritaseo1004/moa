@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { CommentWithUser, IssueWithRelations } from '@/lib/types'
 
@@ -69,7 +70,7 @@ export async function getIssueSequence(projectId: string): Promise<IssueSequence
   return data ?? []
 }
 
-export async function getDueIssuesForDashboard(userId: string): Promise<IssueWithRelations[]> {
+export const getDueIssuesForDashboard = cache(async function getDueIssuesForDashboard(userId: string): Promise<IssueWithRelations[]> {
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('issues')
@@ -89,4 +90,4 @@ export async function getDueIssuesForDashboard(userId: string): Promise<IssueWit
     return []
   }
   return data ?? []
-}
+})

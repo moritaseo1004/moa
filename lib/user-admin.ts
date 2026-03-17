@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { isMasterEmail } from '@/lib/auth-policy'
@@ -38,7 +39,7 @@ function applyMasterOverride(profile: User | null, authUser: { id: string; email
   }
 }
 
-export async function getCurrentUserProfile(): Promise<User | null> {
+export const getCurrentUserProfile = cache(async function getCurrentUserProfile(): Promise<User | null> {
   const supabase = await createClient()
   const {
     data: { user },
@@ -48,7 +49,7 @@ export async function getCurrentUserProfile(): Promise<User | null> {
 
   const profile = await getStoredAuthProfileByAuthUserId(user.id)
   return applyMasterOverride(profile ?? null, user)
-}
+})
 
 export async function requireAdminUser(): Promise<User> {
   const profile = await getCurrentUserProfile()

@@ -27,11 +27,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const profile = user ? await getCurrentUserProfile() : null
-  const projects = user ? await getProjects() : []
+  const showShell = Boolean(user && profile?.is_approved)
+  const projects = showShell ? await getProjects() : []
   const userLabel = profile?.name ?? user?.user_metadata?.name ?? user?.email ?? 'Workspace'
   const userEmail = profile?.email ?? user?.email ?? null
   const roleLabel = formatRoleLabel(profile?.role)
-  const showShell = Boolean(user && profile?.is_approved)
 
   return (
     <html lang="en" className="dark">
