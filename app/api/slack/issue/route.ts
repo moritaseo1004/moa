@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { after, NextRequest, NextResponse } from 'next/server'
 import { verifySlackSignature, parseSlashPayload } from '@/lib/slack/verify'
 import { getInboxProject } from '@/lib/data/projects'
 import { getUserBySlackId } from '@/lib/data/users'
@@ -12,8 +12,105 @@ function ephemeral(text: string) {
   return NextResponse.json({ response_type: 'ephemeral', text })
 }
 
-function inChannel(text: string) {
-  return NextResponse.json({ response_type: 'in_channel', text })
+async function sendSlackFollowUp(
+  responseUrl: string,
+  {
+    text,
+    responseType = 'ephemeral',
+  }: {
+    text: string
+    responseType?: 'ephemeral' | 'in_channel'
+  },
+) {
+  if (!responseUrl) return
+
+  const response = await fetch(responseUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      response_type: responseType,
+      replace_original: false,
+      text,
+    }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Slack follow-up failed with status ${response.status}`)
+  }
+}
+
+async function createSlackIssue(rawBody: string) {
+  const payload = parseSlashPayload(rawBody)
+  const title = payload.text.trim()
+
+  if (!title) {
+    await sendSlackFollowUp(payload.response_url, {
+      text: 'Please provide an issue title.\nUsage: `/issue login button not working`',
+    })
+    return
+  }
+
+  const inboxProject = await getInboxProject()
+  if (!inboxProject) {
+    await sendSlackFollowUp(payload.response_url, {
+      text: 'No project found. Please create a project first.',
+    })
+    return
+  }
+
+  const reporter = payload.user_id ? await getUserBySlackId(payload.user_id) : null
+
+  const supabase = createAdminClient()
+  const { data: issue, error } = await supabase
+    .from('issues')
+    .insert({
+      title,
+      description: null,
+      project_id: inboxProject.id,
+      status: 'backlog',
+      source: 'slack',
+      start_date: getTodayYmd(),
+      reporter_id: reporter?.id ?? null,
+      assignee_id: null,
+    })
+    .select('id')
+    .single()
+
+  if (error || !issue) {
+    console.error('[slack/issue] insert failed:', error?.message)
+    await sendSlackFollowUp(payload.response_url, {
+      text: 'Failed to create issue. Please try again.',
+    })
+    return
+  }
+
+  await logActivity({
+    user_id: reporter?.id ?? null,
+    entity_type: 'issue',
+    entity_id: issue.id,
+    action: 'issue_created',
+    metadata: {
+      title,
+      project_id: inboxProject.id,
+      source: 'slack',
+      start_date: getTodayYmd(),
+      slack_user_id: payload.user_id || null,
+      slack_channel_id: payload.channel_id || null,
+      slack_channel_name: payload.channel_name || null,
+      slack_team_id: payload.team_id || null,
+    },
+  })
+
+  const reporterMention = reporter
+    ? ` — assigned to ${reporter.name}`
+    : payload.user_name
+      ? ` — reported by @${payload.user_name}`
+      : ''
+
+  await sendSlackFollowUp(payload.response_url, {
+    responseType: 'in_channel',
+    text: `✅ *Issue created in ${inboxProject.name}${reporterMention}*\n> ${title}`,
+  })
 }
 
 // ── Route handler ─────────────────────────────────────────────────────────────
@@ -36,73 +133,19 @@ export async function POST(req: NextRequest) {
     return new NextResponse('Unauthorized', { status: 401 })
   }
 
-  // 3. Parse payload
-  const payload = parseSlashPayload(rawBody)
-  const title = payload.text.trim()
-
-  if (!title) {
-    return ephemeral(
-      'Please provide an issue title.\nUsage: `/issue login button not working`',
-    )
-  }
-
-  // 4. Resolve Inbox project
-  const inboxProject = await getInboxProject()
-  if (!inboxProject) {
-    return ephemeral('No project found. Please create a project first.')
-  }
-
-  // 5. Optionally map Slack user → internal user
-  const reporter = payload.user_id ? await getUserBySlackId(payload.user_id) : null
-
-  // 6. Create the issue
-  const supabase = createAdminClient()
-  const { data: issue, error } = await supabase
-    .from('issues')
-    .insert({
-      title,
-      description: null,
-      project_id: inboxProject.id,
-      status: 'backlog',
-      source: 'slack',
-      start_date: getTodayYmd(),
-      reporter_id: reporter?.id ?? null,
-      assignee_id: null,
-    })
-    .select('id')
-    .single()
-
-  if (error || !issue) {
-    console.error('[slack/issue] insert failed:', error?.message)
-    return ephemeral('Failed to create issue. Please try again.')
-  }
-
-  // 7. Activity log
-  await logActivity({
-    user_id: reporter?.id ?? null,
-    entity_type: 'issue',
-    entity_id: issue.id,
-    action: 'issue_created',
-    metadata: {
-      title,
-      project_id: inboxProject.id,
-      source: 'slack',
-      start_date: getTodayYmd(),
-      slack_user_id: payload.user_id || null,
-      slack_channel_id: payload.channel_id || null,
-      slack_channel_name: payload.channel_name || null,
-      slack_team_id: payload.team_id || null,
-    },
+  after(async () => {
+    try {
+      await createSlackIssue(rawBody)
+    } catch (error) {
+      const payload = parseSlashPayload(rawBody)
+      console.error('[slack/issue] background job failed:', error)
+      await sendSlackFollowUp(payload.response_url, {
+        text: 'Unexpected error while creating the issue. Please try again.',
+      }).catch((followUpError) => {
+        console.error('[slack/issue] failed to send error follow-up:', followUpError)
+      })
+    }
   })
 
-  // 8. Respond to Slack
-  const reporter_mention = reporter
-    ? ` — assigned to ${reporter.name}`
-    : payload.user_name
-      ? ` — reported by @${payload.user_name}`
-      : ''
-
-  return inChannel(
-    `✅ *Issue created in ${inboxProject.name}${reporter_mention}*\n> ${title}`,
-  )
+  return ephemeral('Issue request received. Creating it now...')
 }
