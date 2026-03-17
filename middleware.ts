@@ -45,7 +45,7 @@ export async function middleware(request: NextRequest) {
     const { data: profile } = await supabase
       .from('users')
       .select('is_approved')
-      .eq('id', user.id)
+      .eq('auth_user_id', user.id)
       .single()
 
     const approved = isMasterEmail(user.email) || Boolean(profile?.is_approved)
@@ -68,7 +68,7 @@ export async function middleware(request: NextRequest) {
     const { data: profile } = await supabase
       .from('users')
       .select('is_approved')
-      .eq('id', user.id)
+      .eq('auth_user_id', user.id)
       .single()
     const approved = isMasterEmail(user.email) || Boolean(profile?.is_approved)
     const homeUrl = request.nextUrl.clone()
