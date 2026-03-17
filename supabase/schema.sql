@@ -12,7 +12,8 @@ create type issue_priority as enum ('urgent', 'high', 'medium', 'low');
 
 -- Users: mirrors auth.users with additional profile fields
 create table public.users (
-  id            uuid        primary key references auth.users(id) on delete cascade,
+  id            uuid        primary key default uuid_generate_v4(),
+  auth_user_id  uuid        not null unique references auth.users(id) on delete cascade,
   name          text        not null,
   email         text        not null unique,
   slack_user_id text,
@@ -25,6 +26,16 @@ create table public.users (
   last_sign_in_provider text not null default 'email',
   last_sign_in_at timestamptz,
   created_at    timestamptz not null default now()
+);
+
+create table public.user_identities (
+  id               uuid        primary key default uuid_generate_v4(),
+  user_id          uuid        not null references public.users(id) on delete cascade,
+  auth_user_id     uuid        not null unique references auth.users(id) on delete cascade,
+  provider         text        not null check (provider in ('email', 'google')),
+  provider_email   text        not null,
+  created_at       timestamptz not null default now(),
+  last_sign_in_at  timestamptz not null default now()
 );
 
 -- Projects
@@ -91,10 +102,28 @@ create index idx_comments_issue_id   on public.comments(issue_id);
 create index idx_activity_entity     on public.activity_logs(entity_type, entity_id);
 create index idx_activity_user_id    on public.activity_logs(user_id);
 create index idx_dashboard_notes_user_date on public.dashboard_notes(user_id, note_date desc, created_at desc);
+create index idx_user_identities_user_id on public.user_identities(user_id);
+create unique index idx_user_identities_provider_email on public.user_identities(provider, provider_email);
+
+-- ─── Functions ────────────────────────────────────────────────────────────────
+
+create or replace function public.current_app_user_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select ui.user_id
+  from public.user_identities ui
+  where ui.auth_user_id = auth.uid()
+  limit 1
+$$;
 
 -- ─── Row Level Security ────────────────────────────────────────────────────────
 
 alter table public.users         enable row level security;
+alter table public.user_identities enable row level security;
 alter table public.projects      enable row level security;
 alter table public.issues        enable row level security;
 alter table public.comments      enable row level security;
@@ -104,6 +133,9 @@ alter table public.dashboard_notes enable row level security;
 -- Authenticated users can read everything
 create policy "authenticated read"
   on public.users for select to authenticated using (true);
+
+create policy "authenticated read"
+  on public.user_identities for select to authenticated using (auth.uid() = auth_user_id);
 
 create policy "authenticated read"
   on public.projects for select to authenticated using (true);
@@ -117,13 +149,13 @@ create policy "authenticated read"
 create policy "authenticated read"
   on public.activity_logs for select to authenticated using (true);
 
-create policy "authenticated read"
-  on public.dashboard_notes for select to authenticated using (auth.uid() = user_id);
+create policy "own notes read"
+  on public.dashboard_notes for select to authenticated using (public.current_app_user_id() = user_id);
 
 -- Users can only modify their own profile
 create policy "own profile update"
   on public.users for update to authenticated
-  using (auth.uid() = id);
+  using (public.current_app_user_id() = id);
 
 -- Authenticated users can create/update issues and comments
 create policy "authenticated insert"
@@ -137,8 +169,8 @@ create policy "authenticated insert"
 
 create policy "own notes insert"
   on public.dashboard_notes for insert to authenticated
-  with check (auth.uid() = user_id);
+  with check (public.current_app_user_id() = user_id);
 
 create policy "own notes delete"
   on public.dashboard_notes for delete to authenticated
-  using (auth.uid() = user_id);
+  using (public.current_app_user_id() = user_id);

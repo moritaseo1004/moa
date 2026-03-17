@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createIssue } from '@/lib/actions/issues'
 import { Button } from '@/components/ui/button'
 import { DatePickerInput } from '@/components/ui/date-picker-input'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 import { getTodayYmd } from '@/lib/date-utils'
 import { ALL_PRIORITIES, PRIORITY_LABELS } from '@/lib/priority'
 import { formatBytes } from '@/lib/utils'
@@ -193,6 +194,7 @@ export function CreateIssueForm({ projectId }: { projectId: string }) {
         <p className="text-sm text-destructive">{state.error}</p>
       )}
       <Button type="submit" disabled={isPending} size="sm">
+        {isPending ? <InlineSpinner className="h-4 w-4" /> : null}
         {isPending ? 'Creating…' : 'Create issue'}
       </Button>
     </form>

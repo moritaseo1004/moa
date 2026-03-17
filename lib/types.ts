@@ -12,6 +12,7 @@ export type AuthProvider = 'email' | 'google'
 
 export interface User {
   id: string
+  auth_user_id: string
   name: string
   email: string
   slack_user_id: string | null
@@ -23,6 +24,16 @@ export interface User {
   last_sign_in_provider: AuthProvider
   last_sign_in_at: string | null
   created_at: string
+}
+
+export interface UserIdentity {
+  id: string
+  user_id: string
+  auth_user_id: string
+  provider: AuthProvider
+  provider_email: string
+  created_at: string
+  last_sign_in_at: string
 }
 
 export interface Project {

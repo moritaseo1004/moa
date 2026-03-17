@@ -8,6 +8,7 @@ import { getAttachmentsByIssue } from '@/lib/data/attachments'
 import { formatSeoulDateTime } from '@/lib/date-format'
 import { ACTION_LABELS, formatActivityDetail } from '@/lib/issue-activity'
 import { STATUS_LABELS, STATUS_COLORS } from '@/lib/status'
+import { getCurrentUserProfile } from '@/lib/user-admin'
 import { cn } from '@/lib/utils'
 import { IssuePageNav } from './_components/issue-page-nav'
 import { EditIssueForm } from './_components/edit-issue-form'
@@ -31,9 +32,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function IssuePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { createClient } = await import('@/lib/supabase/server')
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const currentUser = await getCurrentUserProfile()
 
   const [issue, projects, users, activity, attachments] = await Promise.all([
     getIssue(id),
@@ -126,7 +125,7 @@ export default async function IssuePage({ params }: { params: Promise<{ id: stri
               )}
             </h2>
 
-            <CommentList comments={comments} issueId={id} currentUserId={user?.id ?? null} />
+            <CommentList comments={comments} issueId={id} currentUserId={currentUser?.id ?? null} />
 
             <CommentForm issueId={issue.id} />
           </div>
@@ -172,7 +171,7 @@ export default async function IssuePage({ params }: { params: Promise<{ id: stri
                   issueId={issue.id}
                   projectId={issue.project_id}
                   current={issue.assignee_id}
-                  currentUserId={user?.id ?? null}
+                  currentUserId={currentUser?.id ?? null}
                 />
               </div>
               <AssigneeSelect
@@ -180,7 +179,7 @@ export default async function IssuePage({ params }: { params: Promise<{ id: stri
                 projectId={issue.project_id}
                 current={issue.assignee_id}
                 users={users}
-                currentUserId={user?.id ?? null}
+                currentUserId={currentUser?.id ?? null}
                 showAssignToMeInline
               />
             </div>

@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef } from 'react'
 import { addComment } from '@/lib/actions/comments'
 import { Button } from '@/components/ui/button'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 
 export function CommentForm({ issueId }: { issueId: string }) {
   const [state, action, isPending] = useActionState(addComment, null)
@@ -26,6 +27,7 @@ export function CommentForm({ issueId }: { issueId: string }) {
       />
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
       <Button type="submit" size="sm" disabled={isPending}>
+        {isPending ? <InlineSpinner className="h-4 w-4" /> : null}
         {isPending ? 'Posting…' : 'Post comment'}
       </Button>
     </form>

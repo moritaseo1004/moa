@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { isMasterEmail } from '@/lib/auth-policy'
-import { getStoredAuthProfile } from '@/lib/auth-profile'
+import { getStoredAuthProfileByAuthUserId } from '@/lib/auth-profile'
 import type { User } from '@/lib/types'
 
 function applyMasterOverride(profile: User | null, authUser: { id: string; email?: string | null; user_metadata?: { name?: string | null } } | null): User | null {
@@ -23,6 +23,7 @@ function applyMasterOverride(profile: User | null, authUser: { id: string; email
 
   return {
     id: authUser!.id,
+    auth_user_id: authUser!.id,
     name: authUser?.user_metadata?.name ?? email,
     email,
     slack_user_id: null,
@@ -45,7 +46,7 @@ export async function getCurrentUserProfile(): Promise<User | null> {
 
   if (!user) return null
 
-  const profile = await getStoredAuthProfile(user.id)
+  const profile = await getStoredAuthProfileByAuthUserId(user.id)
   return applyMasterOverride(profile ?? null, user)
 }
 

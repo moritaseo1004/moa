@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { getIssue, getIssueSequence } from '@/lib/data/issues'
 import { getProjects } from '@/lib/data/projects'
@@ -20,6 +19,7 @@ import { CommentList } from '@/app/issue/[id]/_components/comment-list'
 import { CommentForm } from '@/app/issue/[id]/_components/comment-form'
 import { CompleteButton } from '@/app/issue/[id]/_components/complete-button'
 import { DeleteIssueButton } from '@/app/issue/[id]/_components/delete-issue-button'
+import { getCurrentUserProfile } from '@/lib/user-admin'
 import { IssueDetailSheetCloseButton, IssueDetailSheetFrame } from './issue-detail-sheet-frame'
 
 export async function IssueDetailSheet({
@@ -29,8 +29,7 @@ export async function IssueDetailSheet({
   issueId: string
   projectId: string
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const currentUser = await getCurrentUserProfile()
 
   const [issue, sequence, projects, users, activity, attachments] = await Promise.all([
     getIssue(issueId),
@@ -124,7 +123,7 @@ export async function IssueDetailSheet({
                       <span className="ml-1 normal-case font-normal">({comments.length})</span>
                     ) : null}
                   </h3>
-                  <CommentList comments={comments} issueId={issue.id} currentUserId={user?.id ?? null} />
+                  <CommentList comments={comments} issueId={issue.id} currentUserId={currentUser?.id ?? null} />
                   <CommentForm issueId={issue.id} />
                 </div>
               </div>
@@ -169,7 +168,7 @@ export async function IssueDetailSheet({
                       issueId={issue.id}
                       projectId={issue.project_id}
                       current={issue.assignee_id}
-                      currentUserId={user?.id ?? null}
+                      currentUserId={currentUser?.id ?? null}
                     />
                   </div>
                   <AssigneeSelect
@@ -177,7 +176,7 @@ export async function IssueDetailSheet({
                     projectId={issue.project_id}
                     current={issue.assignee_id}
                     users={users}
-                    currentUserId={user?.id ?? null}
+                    currentUserId={currentUser?.id ?? null}
                     showAssignToMeInline
                   />
                 </div>

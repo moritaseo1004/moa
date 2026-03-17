@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { CheckCheck } from 'lucide-react'
 import { updateIssueStatus } from '@/lib/actions/issues'
 import { Button } from '@/components/ui/button'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 import { cn } from '@/lib/utils'
 
 export function CompleteButton({
@@ -48,7 +49,7 @@ export function CompleteButton({
       size="sm"
       className={cn(isDone && 'opacity-60')}
     >
-      <CheckCheck />
+      {isPending ? <InlineSpinner className="h-4 w-4" /> : <CheckCheck />}
       {isDone ? 'Done' : isPending ? 'Completing…' : 'Complete'}
       {!isDone && (
         <kbd className="ml-1 rounded border border-current/30 px-1 py-px text-[10px] font-mono opacity-60">

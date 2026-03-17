@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef } from 'react'
 import { createProject } from '@/lib/actions/projects'
 import { Button } from '@/components/ui/button'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 
 export function CreateProjectForm() {
   const [state, action, isPending] = useActionState(createProject, null)
@@ -36,6 +37,7 @@ export function CreateProjectForm() {
         <p className="text-sm text-destructive">{state.error}</p>
       )}
       <Button type="submit" disabled={isPending} size="sm">
+        {isPending ? <InlineSpinner className="h-4 w-4" /> : null}
         {isPending ? 'Creating…' : 'Create project'}
       </Button>
     </form>

@@ -146,7 +146,7 @@ export function DashboardView({ issues, today, initialNotes }: DashboardViewProp
     <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(320px,0.9fr)]">
       <div>
         <IssueList
-          title="오늘까지 할 일"
+          title="Today"
           subtitle={`기한: ${formatDateLabel(today)}`}
           issues={todayIssues}
           createDueDate={today}
@@ -155,7 +155,7 @@ export function DashboardView({ issues, today, initialNotes }: DashboardViewProp
 
       <div>
         <IssueList
-          title="이번주에 할 일"
+          title="This week"
           subtitle={`기한: ${formatDateLabel(weekStart)} ~ ${formatDateLabel(weekEnd)}`}
           issues={weekIssues}
           createDueDate={weekFriday}

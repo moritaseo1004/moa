@@ -1,18 +1,27 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { Eye, EyeOff } from 'lucide-react'
 import { signIn, signUp } from '@/lib/actions/auth'
 import { Button } from '@/components/ui/button'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 import { createClient } from '@/lib/supabase/client'
 
 const inputCls =
   'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/50 placeholder:text-muted-foreground'
+const rememberedEmailKey = 'tracker.remembered_email'
 
 export function AuthForm() {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [oauthError, setOauthError] = useState<string | null>(null)
   const [isGooglePending, setIsGooglePending] = useState(false)
+  const [passwordVisible, setPasswordVisible] = useState(false)
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false)
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const emailInputRef = useRef<HTMLInputElement | null>(null)
+  const rememberEmailRef = useRef<HTMLInputElement | null>(null)
   const searchParams = useSearchParams()
 
   const [signInState, signInAction, signInPending] = useActionState(signIn, null)
@@ -22,6 +31,32 @@ export function AuthForm() {
   const state = isSignIn ? signInState : signUpState
   const isPending = isSignIn ? signInPending : signUpPending
   const callbackError = searchParams.get('error')
+  const title = isSignIn ? '로그인' : '회원가입'
+  const description = isSignIn
+    ? '기존 계정이 있으면 이메일 또는 Google로 로그인하세요.'
+    : '이메일 또는 Google로 가입할수 있어요.'
+  const passwordMismatch = !isSignIn && confirmPassword.length > 0 && password !== confirmPassword
+
+  const switchMode = (nextMode: 'signin' | 'signup') => {
+    setPasswordVisible(false)
+    setConfirmPasswordVisible(false)
+    setPassword('')
+    setConfirmPassword('')
+    setMode(nextMode)
+  }
+
+  useEffect(() => {
+    const rememberedEmail = window.localStorage.getItem(rememberedEmailKey)
+    if (!rememberedEmail) return
+
+    if (emailInputRef.current) {
+      emailInputRef.current.value = rememberedEmail
+    }
+
+    if (rememberEmailRef.current) {
+      rememberEmailRef.current.checked = true
+    }
+  }, [])
 
   const handleGoogleSignIn = async () => {
     setOauthError(null)
@@ -41,38 +76,90 @@ export function AuthForm() {
     }
   }
 
+  const handleEmailSubmit = () => {
+    if (isSignIn) {
+      const shouldRemember = rememberEmailRef.current?.checked
+      const email = emailInputRef.current?.value.trim() ?? ''
+
+      if (shouldRemember && email) {
+        window.localStorage.setItem(rememberedEmailKey, email)
+      } else {
+        window.localStorage.removeItem(rememberedEmailKey)
+      }
+    }
+  }
+
   return (
     <div className="space-y-5">
       <div className="space-y-3">
+        <div className="rounded-xl border border-white/8 bg-white/[0.03] p-1">
+          <div className="grid grid-cols-2 gap-1">
+            <button
+              type="button"
+              onClick={() => switchMode('signin')}
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                isSignIn
+                  ? 'bg-white text-[#0f1115]'
+                  : 'text-muted-foreground hover:bg-white/[0.04] hover:text-white'
+              }`}
+            >
+              로그인
+            </button>
+            <button
+              type="button"
+              onClick={() => switchMode('signup')}
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                !isSignIn
+                  ? 'bg-[#68d28c] text-[#08120d]'
+                  : 'text-muted-foreground hover:bg-white/[0.04] hover:text-white'
+              }`}
+            >
+              회원가입
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <h1 className="text-xl font-semibold tracking-tight text-white">{title}</h1>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
+
         <Button
           type="button"
           variant="outline"
           size="lg"
           disabled={isGooglePending}
-          className="w-full"
+          className="w-full border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.06]"
           onClick={handleGoogleSignIn}
         >
-          <GoogleMark />
-          {isGooglePending ? 'Connecting to Google…' : 'Google로 시작하기'}
+          {isGooglePending ? <InlineSpinner className="h-4 w-4" /> : <GoogleMark />}
+          {isGooglePending ? 'Connecting to Google…' : 'Google로 계속하기'}
         </Button>
       </div>
 
       <div className="flex items-center gap-3">
         <div className="h-px flex-1 bg-border" />
         <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-          or
+          email
         </span>
         <div className="h-px flex-1 bg-border" />
       </div>
 
-      <form action={isSignIn ? signInAction : signUpAction} className="space-y-3">
+      <form action={isSignIn ? signInAction : signUpAction} className="space-y-3" onSubmit={handleEmailSubmit}>
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          이메일로 시작하기
+          {isSignIn ? '이메일 로그인' : '이메일 회원가입'}
         </p>
         {!isSignIn && (
-          <input name="name" placeholder="Full name" required autoComplete="name" className={inputCls} />
+          <input
+            name="name"
+            placeholder="Name"
+            required
+            autoComplete="name"
+            className={inputCls}
+          />
         )}
         <input
+          ref={emailInputRef}
           name="email"
           type="email"
           placeholder="Email"
@@ -80,15 +167,70 @@ export function AuthForm() {
           autoComplete="email"
           className={inputCls}
         />
-        <input
-          name="password"
-          type="password"
-          placeholder="Password"
-          required
-          minLength={8}
-          autoComplete={isSignIn ? 'current-password' : 'new-password'}
-          className={inputCls}
-        />
+
+        <div className="relative">
+          <input
+            name="password"
+            type={passwordVisible ? 'text' : 'password'}
+            placeholder="Password"
+            required
+            minLength={8}
+            autoComplete={isSignIn ? 'current-password' : 'new-password'}
+            className={`${inputCls} pr-10`}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+          <button
+            type="button"
+            aria-label={passwordVisible ? 'Hide password' : 'Show password'}
+            onClick={() => setPasswordVisible((value) => !value)}
+            className="absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {passwordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+
+        {isSignIn ? (
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            <input
+              ref={rememberEmailRef}
+              type="checkbox"
+              className="h-4 w-4 rounded border-border bg-background text-primary"
+            />
+            이메일 기억하기
+          </label>
+        ) : null}
+
+        {!isSignIn && (
+          <div className="space-y-2">
+            <div className="relative">
+              <input
+                name="confirm_password"
+                type={confirmPasswordVisible ? 'text' : 'password'}
+                placeholder="Confirm password"
+                required
+                minLength={8}
+                autoComplete="new-password"
+                className={`${inputCls} pr-10`}
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+              />
+              <button
+                type="button"
+                aria-label={confirmPasswordVisible ? 'Hide password confirmation' : 'Show password confirmation'}
+                onClick={() => setConfirmPasswordVisible((value) => !value)}
+                className="absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {confirmPasswordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {passwordMismatch ? (
+              <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                비밀번호가 일치하지 않습니다.
+              </p>
+            ) : null}
+          </div>
+        )}
 
         {state?.error && (
           <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -106,21 +248,28 @@ export function AuthForm() {
           </p>
         )}
 
-        <Button type="submit" disabled={isPending} className="w-full">
+        <Button type="submit" disabled={isPending || passwordMismatch} className="w-full">
+          {isPending ? <InlineSpinner className="h-4 w-4" /> : null}
           {isPending
             ? isSignIn ? 'Signing in…' : 'Creating account…'
-            : isSignIn ? '이메일로 시작하기' : '이메일 계정 만들기'}
+            : isSignIn ? '이메일로 로그인' : '이메일 계정 만들기'}
         </Button>
+
+        {!isSignIn ? (
+          <p className="text-xs text-muted-foreground">
+            가입후 관리자의 승인이 필요합니다.
+          </p>
+        ) : null}
       </form>
 
       <p className="text-center text-xs text-muted-foreground">
-        {isSignIn ? "Don't have an account? " : 'Already have an account? '}
+        {isSignIn ? '계정이 아직 없나요? ' : '이미 계정이 있나요? '}
         <button
           type="button"
-          onClick={() => setMode(isSignIn ? 'signup' : 'signin')}
+          onClick={() => switchMode(isSignIn ? 'signup' : 'signin')}
           className="underline underline-offset-4 hover:text-foreground transition-colors"
         >
-          {isSignIn ? 'Sign up' : 'Sign in'}
+          {isSignIn ? '회원가입으로 이동' : '로그인으로 이동'}
         </button>
       </p>
     </div>

@@ -171,17 +171,18 @@
 
 .login-stage {
   background: #020202;
+  --login-signal-accent: 104, 210, 140;
 }
 
 .login-signal-wrap {
   position: absolute;
-  left: -22%;
+  left: 50%;
   top: 50%;
-  width: 144%;
-  height: 26rem;
-  transform: translateY(-50%);
+  width: max(140rem, 220vw);
+  height: clamp(28rem, 44vw, 36rem);
+  transform: translate(-50%, -50%);
   overflow: visible;
-  opacity: 0.92;
+  opacity: 0.96;
 }
 
 .login-signal-svg {
@@ -206,7 +207,7 @@
 }
 
 .login-signal-svg-front {
-  filter: drop-shadow(0 0 12px rgba(47, 231, 255, 0.34));
+  filter: drop-shadow(0 0 14px rgba(var(--login-signal-accent), 0.42));
   animation: login-signal-front 11s ease-in-out infinite;
 }
 

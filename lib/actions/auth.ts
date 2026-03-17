@@ -20,7 +20,7 @@ export async function signIn(prevState: State, formData: FormData): Promise<Stat
   if (!user) return { error: 'Sign in failed. Try again.' }
 
   const { error: profileError } = await syncUserProfileFromAuth({
-    userId: user.id,
+    authUserId: user.id,
     email: user.email ?? email,
     name: (user.user_metadata?.name as string | undefined) ?? user.email ?? email,
     provider: 'email',
@@ -52,7 +52,7 @@ export async function signUp(prevState: State, formData: FormData): Promise<Stat
 
   // Upsert profile into public.users (admin client to bypass RLS)
   const { error: profileError } = await syncUserProfileFromAuth({
-    userId: data.user.id,
+    authUserId: data.user.id,
     email,
     name,
     provider: 'email',

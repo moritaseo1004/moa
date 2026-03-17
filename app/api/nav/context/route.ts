@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getApprovedAuthUser } from '@/lib/actions/authz'
 import { isInboxProject } from '@/lib/project-utils'
 
 function parseId(pathname: string, base: '/project/' | '/issue/'): string | null {
@@ -13,13 +13,14 @@ function parseId(pathname: string, base: '/project/' | '/issue/'): string | null
 export async function GET(req: NextRequest) {
   const pathname = req.nextUrl.searchParams.get('pathname') ?? ''
 
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user, approved } = await getApprovedAuthUser()
 
   if (!user) {
     return NextResponse.json({ activeProject: null, projectShortcuts: [] }, { status: 401 })
+  }
+
+  if (!approved) {
+    return NextResponse.json({ activeProject: null, projectShortcuts: [] }, { status: 403 })
   }
 
   const admin = createAdminClient()

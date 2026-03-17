@@ -8,6 +8,7 @@ import { getCurrentUserProfile } from '@/lib/user-admin'
 import { getProjects } from '@/lib/data/projects'
 import { GlobalCreateIssueModal } from '@/components/global-create-issue-modal'
 import { GlobalSearchForm } from '@/components/global-search-form'
+import { HelpCenterButton } from '@/components/help-center-button'
 import { HeaderProfileMenu } from '@/components/header-profile-menu'
 import { LeftRail } from '@/components/left-rail'
 import { ProjectSwitcher } from '@/components/project-switcher'
@@ -71,6 +72,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   </div>
 
                   <div className="flex items-center gap-2">
+                    <HelpCenterButton isAdmin={profile?.role === 'admin'} />
+
                     <button
                       type="button"
                       className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-[#1f1f1f] text-muted-foreground transition-colors hover:bg-[#232323] hover:text-foreground"

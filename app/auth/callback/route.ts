@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getStoredAuthProfile, syncUserProfileFromAuth } from '@/lib/auth-profile'
+import { getStoredAuthProfileByAuthUserId, syncUserProfileFromAuth } from '@/lib/auth-profile'
 import { isMasterEmail } from '@/lib/auth-policy'
 
 export async function GET(request: NextRequest) {
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
   }
 
   const { error: profileError } = await syncUserProfileFromAuth({
-    userId: user.id,
+    authUserId: user.id,
     email: user.email,
     name: (user.user_metadata?.name as string | undefined) ?? user.email,
     provider: 'google',
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  const profile = await getStoredAuthProfile(user.id)
+  const profile = await getStoredAuthProfileByAuthUserId(user.id)
   const approved = isMasterEmail(user.email) || Boolean(profile?.is_approved)
 
   return NextResponse.redirect(new URL(approved ? '/dashboard' : '/pending-approval', requestUrl.origin))

@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { ArrowUpRight, Clock3, FolderKanban, UserRound } from 'lucide-react'
 import { STATUS_COLORS, STATUS_LABELS } from '@/lib/status'
+import { getCurrentUserProfile } from '@/lib/user-admin'
 import { cn } from '@/lib/utils'
-import { createClient } from '@/lib/supabase/server'
 import { getSearchFilterOptions, searchIssues } from '@/lib/services/search'
 import { SearchFilters } from './_components/search-filters'
 import type { IssueStatus } from '@/lib/types'
@@ -26,11 +26,7 @@ export default async function SearchPage({
   const status = params.status || undefined
   const assignee = params.assignee?.trim() || undefined
 
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
+  const user = await getCurrentUserProfile()
   if (!user) redirect('/login')
 
   const [results, options] = await Promise.all([

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Trash2 } from 'lucide-react'
 import { deleteIssue } from '@/lib/actions/issues'
 import { Button } from '@/components/ui/button'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 
 export function DeleteIssueButton({
   issueId,
@@ -33,7 +34,10 @@ export function DeleteIssueButton({
           disabled={isPending}
           className="text-xs text-destructive hover:underline disabled:opacity-50"
         >
-          확인
+          <span className="inline-flex items-center gap-1">
+            {isPending ? <InlineSpinner className="h-3.5 w-3.5" /> : null}
+            확인
+          </span>
         </button>
         <button
           onClick={() => setConfirm(false)}
