@@ -19,6 +19,7 @@ import { CommentList } from '@/app/issue/[id]/_components/comment-list'
 import { CommentForm } from '@/app/issue/[id]/_components/comment-form'
 import { CompleteButton } from '@/app/issue/[id]/_components/complete-button'
 import { DeleteIssueButton } from '@/app/issue/[id]/_components/delete-issue-button'
+import { CopyIssueLinkButton } from '@/app/issue/[id]/_components/copy-issue-link-button'
 import { getCurrentUserProfile } from '@/lib/user-admin'
 import { IssueDetailSheetCloseButton, IssueDetailSheetFrame } from './issue-detail-sheet-frame'
 
@@ -101,6 +102,7 @@ export async function IssueDetailSheet({
               >
                 Open full page
               </Link>
+              <CopyIssueLinkButton issueId={issue.id} size="xs" />
               <IssueDetailSheetCloseButton
                 closeHref={closeHref}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-[#1f1f1f] text-muted-foreground transition-colors hover:bg-[#232323] hover:text-foreground"

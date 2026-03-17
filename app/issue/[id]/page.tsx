@@ -23,6 +23,7 @@ import { CompleteButton } from './_components/complete-button'
 import { DeleteIssueButton } from './_components/delete-issue-button'
 import { IssueAttachments } from './_components/issue-attachments'
 import { CommentList } from './_components/comment-list'
+import { CopyIssueLinkButton } from './_components/copy-issue-link-button'
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -102,6 +103,7 @@ export default async function IssuePage({ params }: { params: Promise<{ id: stri
         </div>
 
         <div className="flex items-center gap-2">
+          <CopyIssueLinkButton issueId={issue.id} />
           <DeleteIssueButton issueId={issue.id} projectId={issue.project_id} />
           <CompleteButton issueId={issue.id} projectId={issue.project_id} isDone={isDone} />
         </div>
