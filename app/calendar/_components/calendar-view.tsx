@@ -231,11 +231,11 @@ export function CalendarView({
                     </div>
                     <div className="space-y-1">
                       {[
-                        ...(issuesByDate.startMap.get(ymd) ?? []).map((issue) => ({ issue, label: 'S' })),
-                        ...(issuesByDate.dueMap.get(ymd) ?? []).map((issue) => ({ issue, label: 'D' })),
-                      ].slice(0, 2).map(({ issue, label }) => (
+                        ...(issuesByDate.startMap.get(ymd) ?? []).map((issue) => ({ issue })),
+                        ...(issuesByDate.dueMap.get(ymd) ?? []).map((issue) => ({ issue })),
+                      ].slice(0, 2).map(({ issue }) => (
                         <p key={issue.id} className="truncate rounded-md border border-border/60 bg-background/90 px-2 py-1.5 text-[10px] text-foreground/85">
-                          {label} {issue.title}
+                          {issue.title}
                         </p>
                       ))}
                       {totalCount > 2 && (

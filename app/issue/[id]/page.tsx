@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Trash2 } from 'lucide-react'
 import { getIssue, getIssueSequence } from '@/lib/data/issues'
 import { getProjects } from '@/lib/data/projects'
 import { getUsers } from '@/lib/data/users'
@@ -216,11 +215,7 @@ export default async function IssuePage({ params }: { params: Promise<{ id: stri
               </p>
             </div>
 
-            <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 space-y-3">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                <span>완전히 제거할 때만 사용</span>
-              </div>
+            <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
               <div className="flex items-center">
                 <DeleteIssueButton issueId={issue.id} projectId={issue.project_id} label="Delete issue" />
               </div>
