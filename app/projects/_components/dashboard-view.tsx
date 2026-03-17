@@ -204,7 +204,8 @@ export function DashboardView({ issues, today, initialNotes }: DashboardViewProp
                     return
                   }
                   if (result.note) {
-                    setNotes((prev) => [result.note, ...prev])
+                    const createdNote = result.note
+                    setNotes((prev) => [createdNote, ...prev])
                   }
                   setNoteTitle('')
                   setNoteContent('')

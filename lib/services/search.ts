@@ -10,6 +10,16 @@ function toOrIlikePattern(input: string): string {
   return `*${input.replace(/\*/g, '')}*`
 }
 
+function getRelationName(
+  relation: { name?: string | null } | { name?: string | null }[] | null | undefined,
+): string | null {
+  if (!relation) return null
+  if (Array.isArray(relation)) {
+    return relation[0]?.name ?? null
+  }
+  return relation.name ?? null
+}
+
 async function getAccessibleProjectIds(userId: string): Promise<string[]> {
   void userId
   // Current MVP authorization model: authenticated users can access all projects.
@@ -115,9 +125,9 @@ export async function searchIssues(
   return data.map((row) => ({
     issueId: row.id,
     issueTitle: row.title,
-    projectName: row.project?.name ?? 'Unknown project',
+    projectName: getRelationName(row.project) ?? 'Unknown project',
     status: row.status as IssueStatus,
-    assignee: row.assignee?.name ?? null,
+    assignee: getRelationName(row.assignee),
     updatedAt: row.created_at,
   }))
 }
