@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react'
 import { LinkifiedText } from '@/components/linkified-text'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 import { deleteComment } from '@/lib/actions/comments'
 import { formatSeoulDateTime } from '@/lib/date-format'
 import type { CommentWithUser } from '@/lib/types'
@@ -108,9 +109,10 @@ function CommentItem({
                 <button
                   onClick={handleDelete}
                   disabled={isPending}
-                  className="text-xs text-destructive hover:underline disabled:opacity-50"
+                  className="inline-flex items-center gap-1 text-xs text-destructive hover:underline disabled:opacity-50"
                 >
-                  삭제
+                  {isPending ? <InlineSpinner className="h-3.5 w-3.5" /> : null}
+                  {isPending ? '삭제 중…' : '삭제'}
                 </button>
                 <button
                   onClick={() => setConfirm(false)}

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 import { deleteProject, updateProjectPrefix } from '@/lib/actions/projects'
 import { isInboxProject } from '@/lib/project-utils'
 import type { Project } from '@/lib/types'
@@ -43,9 +44,10 @@ function PrefixEditor({ project }: { project: Project }) {
         <button
           onClick={handleSave}
           disabled={isPending}
-          className="text-xs text-primary hover:underline disabled:opacity-50"
+          className="inline-flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
         >
-          저장
+          {isPending ? <InlineSpinner className="h-3.5 w-3.5" /> : null}
+          {isPending ? '저장 중…' : '저장'}
         </button>
         <button
           onClick={() => { setValue(project.prefix); setEditing(false); setError(null) }}
@@ -127,9 +129,10 @@ export function ProjectList({ projects }: { projects: Project[] }) {
                 <button
                   onClick={() => handleDelete(project.id)}
                   disabled={isPending}
-                  className="text-xs text-destructive hover:underline disabled:opacity-50"
+                  className="inline-flex items-center gap-1 text-xs text-destructive hover:underline disabled:opacity-50"
                 >
-                  확인
+                  {isPending ? <InlineSpinner className="h-3.5 w-3.5" /> : null}
+                  {isPending ? '삭제 중…' : '확인'}
                 </button>
                 <button
                   onClick={() => setConfirmId(null)}

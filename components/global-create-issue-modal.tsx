@@ -5,11 +5,12 @@ import { useEffect, useRef, useState, useTransition } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createIssue } from '@/lib/actions/issues'
 import { getProjectsAction } from '@/lib/actions/projects'
-import { listMentionableUsers } from '@/lib/actions/users'
+import { listAssignableUsers } from '@/lib/actions/users'
 import { FormSelectField } from '@/components/form-select-field'
 import { Button } from '@/components/ui/button'
 import { DatePickerInput } from '@/components/ui/date-picker-input'
 import { FileDropzone } from '@/components/file-dropzone'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 import { getTodayYmd } from '@/lib/date-utils'
 import { MentionTextarea } from '@/components/mention-textarea'
 import { ALL_PRIORITIES, PRIORITY_LABELS } from '@/lib/priority'
@@ -80,7 +81,7 @@ export function GlobalCreateIssueModal() {
   // Load projects when modal opens
   useEffect(() => {
     if (!open) return
-    Promise.all([getProjectsAction(), listMentionableUsers()])
+    Promise.all([getProjectsAction(), listAssignableUsers()])
       .then(([projectData, userData]) => {
         setProjects(projectData)
         setUsers(userData)
@@ -386,6 +387,7 @@ export function GlobalCreateIssueModal() {
               Cancel
             </Button>
             <Button type="submit" size="sm" disabled={isPending}>
+              {isPending ? <InlineSpinner className="h-4 w-4" /> : null}
               {isPending ? 'Creating…' : 'Create issue'}
             </Button>
           </div>

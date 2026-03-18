@@ -90,6 +90,10 @@ export function FormSelectField({
     setOpen(false)
   }
 
+  const panelMaxHeight = panelStyle
+    ? Math.max(160, Math.min(320, window.innerHeight - panelStyle.top - 8))
+    : 320
+
   return (
     <div ref={containerRef} className={cn('relative w-full min-w-0', className)}>
       <input type="hidden" name={name} value={value} />
@@ -128,9 +132,15 @@ export function FormSelectField({
                 top: panelStyle.top,
                 left: panelStyle.left,
                 width: panelStyle.width,
+                maxHeight: panelMaxHeight,
               }}
             >
-              <div className="space-y-1">
+              <div
+                className="dashboard-scroll space-y-1 overflow-y-auto pr-1"
+                style={{
+                  maxHeight: panelMaxHeight,
+                }}
+              >
                 {options.map((option) => {
                   const isSelected = option.value === value
 

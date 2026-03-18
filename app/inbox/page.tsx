@@ -1,21 +1,14 @@
 import Link from 'next/link'
-import { Suspense } from 'react'
 import { getInboxProject } from '@/lib/data/projects'
+import { getProjects } from '@/lib/data/projects'
 import { getIssuesByProject } from '@/lib/data/issues'
-import { getUsers } from '@/lib/data/users'
-import { KanbanBoard } from '@/app/project/[id]/_components/kanban-board'
-import { IssueDetailSheet } from '@/app/project/[id]/_components/issue-detail-sheet'
-import { IssueDetailSheetSkeleton } from '@/app/project/[id]/_components/issue-detail-sheet-skeleton'
+import { getAssignableUsers } from '@/lib/data/users'
+import { InboxTriageTable } from './_components/inbox-triage-table'
 
 export const metadata = { title: 'Inbox — Tracker' }
 
-export default async function InboxPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ issue?: string }>
-}) {
+export default async function InboxPage() {
   const project = await getInboxProject()
-  const { issue: selectedIssueId } = await searchParams
 
   if (!project) {
     return (
@@ -30,10 +23,13 @@ export default async function InboxPage({
     )
   }
 
-  const [issues, users] = await Promise.all([
+  const [issues, users, projects] = await Promise.all([
     getIssuesByProject(project.id),
-    getUsers(),
+    getAssignableUsers(),
+    getProjects(),
   ])
+
+  const assignableProjects = projects.filter((item) => item.id !== project.id)
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -50,19 +46,18 @@ export default async function InboxPage({
           </span>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          External-channel issues land here first so you can set the project and assignee.
+          Triage incoming issues here, then move them into a project with the right assignee.
         </p>
       </div>
 
-      <div className="flex-1 overflow-x-auto px-6 py-6">
-        <KanbanBoard issues={issues} projectId={project.id} users={users} />
+      <div className="flex-1 px-6 py-6">
+        <InboxTriageTable
+          issues={issues}
+          inboxProjectId={project.id}
+          projects={assignableProjects}
+          users={users}
+        />
       </div>
-
-      {selectedIssueId ? (
-        <Suspense key={selectedIssueId} fallback={<IssueDetailSheetSkeleton />}>
-          <IssueDetailSheet issueId={selectedIssueId} projectId={project.id} basePath="/inbox" />
-        </Suspense>
-      ) : null}
     </div>
   )
 }

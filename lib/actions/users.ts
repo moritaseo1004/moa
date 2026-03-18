@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdminUser } from '@/lib/user-admin'
 import { getAuthenticatedProfile } from '@/lib/actions/authz'
-import { getUsers } from '@/lib/data/users'
+import { getAssignableUsers, getUsers } from '@/lib/data/users'
 
 type UserRole = 'admin' | 'member'
 type SlackLinkState = { error?: string; success?: string } | null
@@ -14,6 +14,18 @@ export async function listMentionableUsers() {
   if (!profile) return []
 
   const users = await getUsers()
+  return users.map((user) => ({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+  }))
+}
+
+export async function listAssignableUsers() {
+  const profile = await getAuthenticatedProfile()
+  if (!profile) return []
+
+  const users = await getAssignableUsers()
   return users.map((user) => ({
     id: user.id,
     name: user.name,
@@ -86,6 +98,29 @@ export async function updateUserRole(userId: string, role: UserRole): Promise<{ 
 
   revalidatePath('/users')
   revalidatePath(`/users/${userId}`)
+  return {}
+}
+
+export async function updateUserAssignable(userId: string, assignable: boolean): Promise<{ error?: string }> {
+  await requireAdminUser()
+  const supabase = createAdminClient()
+
+  const { error } = await supabase
+    .from('users')
+    .update({ is_assignable: assignable })
+    .eq('id', userId)
+
+  if (error) {
+    if ((error as { code?: string }).code === '42703') {
+      return { error: 'DB migration is not applied yet. Please add the is_assignable column first.' }
+    }
+    return { error: error.message }
+  }
+
+  revalidatePath('/users')
+  revalidatePath(`/users/${userId}`)
+  revalidatePath('/inbox')
+  revalidatePath('/dashboard')
   return {}
 }
 

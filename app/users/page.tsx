@@ -21,6 +21,12 @@ function badgeClass(kind: 'approved' | 'pending' | 'admin' | 'member' | 'linked'
   }
 }
 
+function assignableBadgeClass(assignable: boolean) {
+  return assignable
+    ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-200'
+    : 'border-amber-400/20 bg-amber-500/10 text-amber-200'
+}
+
 export default async function UsersPage() {
   await requireAdminUser()
   const users = await getUsers()
@@ -41,6 +47,7 @@ export default async function UsersPage() {
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">Name</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">Email</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">Slack</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">Assignable</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">Approved</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">Role</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">Created</th>
@@ -58,6 +65,11 @@ export default async function UsersPage() {
                 <td className="px-4 py-3">
                   <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs ${badgeClass(user.slack_user_id ? 'linked' : 'unlinked')}`}>
                     {user.slack_user_id ? 'Linked' : 'Not linked'}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs ${assignableBadgeClass(user.is_assignable)}`}>
+                    {user.is_assignable ? 'Assignable' : 'Unavailable'}
                   </span>
                 </td>
                 <td className="px-4 py-3">

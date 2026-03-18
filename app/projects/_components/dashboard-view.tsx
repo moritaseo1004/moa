@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useMemo, useState, useTransition } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 import { PriorityLabel, StatusBadge } from '@/components/issue-meta-badges'
 import { addDashboardNote, deleteDashboardNote } from '@/lib/actions/notes'
 import type { DashboardNote, IssueWithRelations } from '@/lib/types'
@@ -224,8 +225,8 @@ export function DashboardNotesPanel({
             }}
             className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-background px-2.5 text-xs transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <Plus className="h-3.5 w-3.5" />
-            메모 추가
+            {isPending ? <InlineSpinner className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+            {isPending ? '추가 중…' : '메모 추가'}
           </button>
           {noteError && <p className="text-xs text-destructive">{noteError}</p>}
         </div>

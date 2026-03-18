@@ -29,6 +29,7 @@ function applyMasterOverride(profile: User | null, authUser: { id: string; email
     email,
     slack_user_id: null,
     role: 'admin',
+    is_assignable: true,
     is_approved: true,
     approved_at: new Date().toISOString(),
     approved_by: null,

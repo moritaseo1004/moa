@@ -475,3 +475,135 @@ export async function moveIssueToProject(
   revalidatePath('/inbox')
   return {}
 }
+
+export async function bulkUpdateInboxIssues(input: {
+  issueIds: string[]
+  fromProjectId: string
+  toProjectId?: string | null
+  assigneeId?: string | null
+}): Promise<{ error?: string; updatedCount?: number }> {
+  const actorId = await getAuthenticatedUserId()
+  if (!actorId) return { error: 'Unauthorized' }
+
+  const issueIds = Array.from(new Set(input.issueIds.filter(Boolean)))
+  const toProjectId = input.toProjectId ?? undefined
+  const assigneeId = input.assigneeId === undefined ? undefined : input.assigneeId
+
+  if (!input.fromProjectId) return { error: 'Inbox project is required.' }
+  if (issueIds.length === 0) return { error: 'No issues selected.' }
+  if (toProjectId === undefined && assigneeId === undefined) {
+    return { error: 'Choose at least one field to update.' }
+  }
+
+  const supabase = createAdminClient()
+  const { data: issues, error: issuesError } = await supabase
+    .from('issues')
+    .select('id, title, project_id, assignee_id')
+    .in('id', issueIds)
+    .eq('project_id', input.fromProjectId)
+    .order('created_at', { ascending: true })
+
+  if (issuesError) return { error: issuesError.message }
+  if (!issues || issues.length === 0) return { error: 'No matching inbox issues found.' }
+
+  let nextIssueNumber = 0
+  if (toProjectId && toProjectId !== input.fromProjectId) {
+    const { data: targetProjectIssues, error: sequenceError } = await supabase
+      .from('issues')
+      .select('issue_number')
+      .eq('project_id', toProjectId)
+      .order('issue_number', { ascending: false })
+      .limit(1)
+
+    if (sequenceError) return { error: sequenceError.message }
+    nextIssueNumber = (targetProjectIssues?.[0]?.issue_number ?? 0) + 1
+  }
+
+  const assignmentNotifications: Array<{
+    recipient_user_id: string
+    actor_user_id: string | null
+    issue_id: string | null
+    type: 'assigned'
+    title: string
+    body: string | null
+    link_url: string
+  }> = []
+
+  for (const issue of issues) {
+    const updatePayload: {
+      project_id?: string
+      issue_number?: number
+      assignee_id?: string | null
+    } = {}
+
+    if (toProjectId && toProjectId !== issue.project_id) {
+      updatePayload.project_id = toProjectId
+      updatePayload.issue_number = nextIssueNumber
+      nextIssueNumber += 1
+    }
+
+    if (assigneeId !== undefined) {
+      updatePayload.assignee_id = assigneeId
+    }
+
+    if (Object.keys(updatePayload).length === 0) {
+      continue
+    }
+
+    const { error: updateError } = await supabase
+      .from('issues')
+      .update(updatePayload)
+      .eq('id', issue.id)
+
+    if (updateError) return { error: updateError.message }
+
+    if (updatePayload.project_id) {
+      await logActivity({
+        user_id: actorId,
+        entity_type: 'issue',
+        entity_id: issue.id,
+        action: 'issue_updated',
+        metadata: { field: 'project_id', from: issue.project_id, to: updatePayload.project_id },
+      })
+    }
+
+    if (assigneeId !== undefined && assigneeId !== issue.assignee_id) {
+      await logActivity({
+        user_id: actorId,
+        entity_type: 'issue',
+        entity_id: issue.id,
+        action: 'assignee_changed',
+        metadata: { assignee_id: assigneeId },
+      })
+
+      if (assigneeId) {
+        assignmentNotifications.push({
+          recipient_user_id: assigneeId,
+          actor_user_id: actorId,
+          issue_id: issue.id,
+          type: 'assigned',
+          title: `You were assigned to ${issue.title}`,
+          body: 'A teammate assigned this issue to you.',
+          link_url: `/issue/${issue.id}`,
+        })
+      }
+    }
+  }
+
+  if (assignmentNotifications.length > 0) {
+    await createNotifications(assignmentNotifications)
+    revalidatePath('/', 'layout')
+  }
+
+  revalidatePath('/inbox')
+  revalidatePath(`/project/${input.fromProjectId}`)
+
+  if (toProjectId && toProjectId !== input.fromProjectId) {
+    revalidatePath(`/project/${toProjectId}`)
+  }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/calendar')
+
+  return { updatedCount: issues.length }
+}

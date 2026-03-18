@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createIssue } from '@/lib/actions/issues'
-import { listMentionableUsers } from '@/lib/actions/users'
+import { listAssignableUsers } from '@/lib/actions/users'
 import { FormSelectField } from '@/components/form-select-field'
 import { Button } from '@/components/ui/button'
 import { DatePickerInput } from '@/components/ui/date-picker-input'
@@ -37,7 +37,7 @@ export function CreateIssueForm({ projectId }: { projectId: string }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    listMentionableUsers().then(setUsers).catch(() => setUsers([]))
+    listAssignableUsers().then(setUsers).catch(() => setUsers([]))
   }, [])
 
   function revokeAndClear() {

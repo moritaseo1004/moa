@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 import { deleteAttachment } from '@/lib/actions/attachments'
 
 export function DeleteAttachmentButton({
@@ -27,9 +28,10 @@ export function DeleteAttachmentButton({
         <button
           onClick={handleDelete}
           disabled={isPending}
-          className="text-xs text-destructive hover:underline disabled:opacity-50"
+          className="inline-flex items-center gap-1 text-xs text-destructive hover:underline disabled:opacity-50"
         >
-          삭제
+          {isPending ? <InlineSpinner className="h-3.5 w-3.5" /> : null}
+          {isPending ? '삭제 중…' : '삭제'}
         </button>
         <button
           onClick={() => setConfirm(false)}

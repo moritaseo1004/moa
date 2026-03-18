@@ -17,6 +17,7 @@ export interface User {
   email: string
   slack_user_id: string | null
   role: 'admin' | 'member'
+  is_assignable: boolean
   is_approved: boolean
   approved_at: string | null
   approved_by: string | null

@@ -1,5 +1,5 @@
 import { getProjects } from '@/lib/data/projects'
-import { getUsers } from '@/lib/data/users'
+import { getAssignableUsers } from '@/lib/data/users'
 import type { IssueWithRelations } from '@/lib/types'
 import { formatSeoulDateTime } from '@/lib/date-format'
 import { StatusSelect } from './status-select'
@@ -19,7 +19,11 @@ export async function IssueDetailSidebar({
   currentUserId: string | null
   returnHref?: string
 }) {
-  const [projects, users] = await Promise.all([getProjects(), getUsers()])
+  const [projects, assignableUsers] = await Promise.all([getProjects(), getAssignableUsers()])
+  const users =
+    issue.assignee && !assignableUsers.some((user) => user.id === issue.assignee?.id)
+      ? [...assignableUsers, issue.assignee]
+      : assignableUsers
 
   return (
     <div className="rounded-lg border border-border bg-card/50 p-5 space-y-5">

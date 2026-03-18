@@ -18,6 +18,7 @@ create table public.users (
   email         text        not null unique,
   slack_user_id text,
   role          text        not null default 'member' check (role in ('admin', 'member')),
+  is_assignable boolean     not null default true,
   is_approved   boolean     not null default false,
   approved_at   timestamptz,
   approved_by   uuid        references public.users(id) on delete set null,

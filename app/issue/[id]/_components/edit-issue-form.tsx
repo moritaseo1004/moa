@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react'
 import { LinkifiedText } from '@/components/linkified-text'
 import { MentionTextarea } from '@/components/mention-textarea'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 import { updateIssue } from '@/lib/actions/issues'
 import { Button } from '@/components/ui/button'
 import type { IssueWithRelations } from '@/lib/types'
@@ -68,6 +69,7 @@ export function EditIssueForm({ issue }: { issue: IssueWithRelations }) {
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
       <div className="flex items-center gap-2 pt-1">
         <Button type="submit" size="sm" disabled={isPending}>
+          {isPending ? <InlineSpinner className="h-4 w-4" /> : null}
           {isPending ? 'Saving…' : 'Save'}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>

@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation'
-import { updateUserApproval, updateUserRole } from '@/lib/actions/users'
+import { updateUserApproval, updateUserAssignable, updateUserRole } from '@/lib/actions/users'
 import { getUser } from '@/lib/data/users'
 import { requireAdminUser } from '@/lib/user-admin'
+import { AccessActionButton } from './_components/access-action-button'
 import { SlackLinkForm } from './_components/slack-link-form'
 
 export const metadata = { title: 'User Detail — Tracker' }
@@ -38,6 +39,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
             <DetailRow label="First provider" value={user.first_auth_provider} />
             <DetailRow label="Last sign-in provider" value={user.last_sign_in_provider} />
             <DetailRow label="Slack" value={user.slack_user_id ? 'Linked' : 'Not linked'} />
+            <DetailRow label="Assignable" value={user.is_assignable ? 'Assignable' : 'Unavailable'} />
             <DetailRow label="Approved" value={user.is_approved ? 'Approved' : 'Pending'} />
             <DetailRow label="Role" value={user.role} />
             <DetailRow label="Created" value={new Date(user.created_at).toLocaleString()} />
@@ -48,32 +50,35 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
         <section className="rounded-xl border border-border bg-card/50 p-5 space-y-4">
           <h2 className="text-sm font-medium">Access</h2>
 
-          <form action={async () => {
-            'use server'
-            await updateUserApproval(user.id, !user.is_approved)
-          }}>
-            <button
-              type="submit"
-              className="inline-flex h-9 w-full items-center justify-center rounded-lg border border-border bg-background px-3 text-sm transition-colors hover:bg-muted"
-            >
-              {user.is_approved ? 'Revoke approval' : 'Approve user'}
-            </button>
-          </form>
+          <AccessActionButton
+            action={async () => {
+              'use server'
+              await updateUserApproval(user.id, !user.is_approved)
+            }}
+            idleLabel={user.is_approved ? 'Revoke approval' : 'Approve user'}
+            pendingLabel={user.is_approved ? 'Revoking…' : 'Approving…'}
+          />
 
-          <form action={async () => {
-            'use server'
-            await updateUserRole(user.id, user.role === 'admin' ? 'member' : 'admin')
-          }}>
-            <button
-              type="submit"
-              className="inline-flex h-9 w-full items-center justify-center rounded-lg border border-border bg-background px-3 text-sm transition-colors hover:bg-muted"
-            >
-              {user.role === 'admin' ? 'Make member' : 'Make admin'}
-            </button>
-          </form>
+          <AccessActionButton
+            action={async () => {
+              'use server'
+              await updateUserRole(user.id, user.role === 'admin' ? 'member' : 'admin')
+            }}
+            idleLabel={user.role === 'admin' ? 'Make member' : 'Make admin'}
+            pendingLabel={user.role === 'admin' ? 'Updating role…' : 'Updating role…'}
+          />
+
+          <AccessActionButton
+            action={async () => {
+              'use server'
+              await updateUserAssignable(user.id, !user.is_assignable)
+            }}
+            idleLabel={user.is_assignable ? 'Remove from assignee lists' : 'Allow as assignee'}
+            pendingLabel={user.is_assignable ? 'Removing…' : 'Updating…'}
+          />
 
           <p className="text-xs text-muted-foreground">
-            Signed in as {admin.name}. Approval and role updates take effect on the user&apos;s next request.
+            Signed in as {admin.name}. Approval, role, and assignable updates take effect after the next refresh.
           </p>
         </section>
       </div>
